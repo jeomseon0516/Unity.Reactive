@@ -1,0 +1,6 @@
+{
+  "name": "Jeomseon.Unity.Reactive.Samples.BasicUsage",
+  "references": [
+    "Jeomseon.Unity.Reactive"
+  ]
+}

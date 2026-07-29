@@ -1,5 +1,9 @@
 # 변경 기록
 
+## [0.1.1] - 2026-07-29
+
+- `ReactiveList<T>` 이벤트를 확인하는 `Basic Usage` 샘플을 추가했습니다.
+
 ## [Unreleased]
 
 - TODO(architecture): 자체 Reactive 계약을 유지할지 R3 등 검증된 스트림 라이브러리와 어댑터 계층으로 전환할지 결정합니다.
