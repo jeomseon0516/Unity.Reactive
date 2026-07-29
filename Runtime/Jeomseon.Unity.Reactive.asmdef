@@ -1,0 +1,9 @@
+{
+  "name": "Jeomseon.Unity.Reactive",
+  "rootNamespace": "Jeomseon",
+  "references": [
+    "Jeomseon.Unity.Core"
+  ],
+  "autoReferenced": true,
+  "noEngineReferences": false
+}

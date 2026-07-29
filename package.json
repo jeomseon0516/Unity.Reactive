@@ -1,0 +1,24 @@
+{
+  "name": "com.jeomseon.unity.reactive",
+  "version": "0.1.0",
+  "displayName": "Jeomseon Unity Reactive",
+  "description": "Reactive values, lists, events, and Unity-facing reactive fields.",
+  "unity": "2022.3",
+  "dependencies": {
+    "com.jeomseon.unity.core": "0.1.0"
+  },
+  "author": {
+    "name": "jeomseon0516",
+    "url": "https://github.com/jeomseon0516"
+  },
+  "keywords": [
+    "jeomseon",
+    "unity",
+    "reactive"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jeomseon0516/Unity.Reactive.git"
+  }
+}
