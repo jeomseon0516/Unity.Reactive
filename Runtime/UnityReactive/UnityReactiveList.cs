@@ -1,4 +1,3 @@
-#if UNITY_5_3_OR_NEWER
 using System;
 using System.Linq;
 using System.Collections;
@@ -306,4 +305,3 @@ namespace Jeomseon.UnityReactive
         public UnityReactiveList(IEnumerable<T> collection) => _list = new List<T>(collection);
     }
 }
-#endif

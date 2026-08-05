@@ -7,7 +7,7 @@ using System.Collections.ObjectModel;
 namespace Jeomseon.Reactive
 {
     /// <summary>
-    /// Unity 의존성 없는 순수 C# ReactiveList
+    /// Unity 의존성 없는 순수 C# ReactiveList입니다.
     /// </summary>
     [Serializable]
     public class ReactiveList<T> : IList<T>, IReadOnlyReactiveList<T>
@@ -69,6 +69,9 @@ namespace Jeomseon.Reactive
         { if (onAddAction != null) _added += onAddAction; }
 
         // -------------------- Add / Insert --------------------
+        /* TODO(P1-01, architecture): 자체 Reactive 계약을 유지할지 R3 등 검증된 스트림 라이브러리와
+         * 어댑터 계층으로 전환할지 결정하고 이벤트·할당 비용을 비교합니다.
+         */
         public void Add(T item) => insertInternal(_list.Count, item);
         public void Insert(int index, T item) => insertInternal(index, item);
         private void insertInternal(int index, T item)

@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
-using Jeomseon.Extensions;
+using Jeomseon.Events;
 
 namespace Jeomseon.UnityReactive
 {
