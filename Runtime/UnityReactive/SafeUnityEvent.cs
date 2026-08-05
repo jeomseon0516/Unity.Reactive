@@ -1,7 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using Jeomseon.Extensions;
+using Jeomseon.Events;
 using UnityEngine;
 using UnityEngine.Events;
 using Object = UnityEngine.Object;
