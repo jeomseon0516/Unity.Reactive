@@ -1,10 +1,10 @@
 {
   "name": "com.jeomseon.unity.reactive",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "displayName": "Jeomseon Unity Reactive",
   "description": "Reactive values, lists, events, and Unity-facing reactive fields.",
-  "unity": "6000.3",
-  "unityRelease": "15f1",
+  "unity": "6000.5",
+  "unityRelease": "7f1",
   "dependencies": {
     "com.jeomseon.unity.core": "0.1.0"
   },
