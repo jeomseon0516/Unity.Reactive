@@ -1,4 +1,4 @@
-using Jeomseon.Reactive;
+using Jeomseon.UnityReactive;
 using UnityEngine;
 
 namespace Jeomseon.Samples.Reactive

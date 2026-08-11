@@ -2,9 +2,82 @@
 
 ## [Unreleased]
 
+- **(Breaking)** `UnityReactiveList<T>`를 `ReactiveList<T>`로 이름을 줄였습니다. 순수 C#
+  `ReactiveList<T>`를 이번에 제거해 이름이 비어 있었고, `Unity` 접두사를 붙이면 이 패키지의
+  다른 타입(`ReactiveField<T>`)과도 이름 스타일이 안 맞아 반대로 짧은 쪽으로 통일했습니다.
+  Sample·테스트(`Tests/Editor/ReactiveListTests.cs`)도 함께 갱신했습니다.
+- **(Breaking)** 아무 곳에서도 참조되지 않던 `SafeAction`, `SafeUnityEvent`(+
+  `IUnityEventListenerModifier<...>`, `ISafeUnityEventBase`)를 제거했습니다. `ReactiveList<T>`/
+  `ReactiveField<T>` 어디에서도 쓰지 않았고 Sample·테스트도 없어 사용성이 없다고 판단했습니다.
+- **(Breaking)** `ReactiveField<T>._value`가 프로퍼티(`Value`와 이름이 겹쳐 PascalCase를 쓸 수
+  없었음)였던 것을 일반 `[SerializeField] protected T value;` 필드로 내렸습니다. 세터 안에서
+  `value`가 세터의 암시적 매개변수를 가리키는 것과 필드 자체를 구분해야 해서 필드 접근은
+  `this.value`로 명시했습니다. 기존에 직렬화된 Scene/Prefab의 `ReactiveField` 값은
+  초기화됩니다(의도적 — 사용자 확인).
+- 명명 규칙 정리: `ReactiveList<T>`의 `[NonSerialized] private` 필드 `runtime`을
+  `_runtime`으로, `private`/`private static` 메서드(`removeListenerSafe`, `addListenerSafe`,
+  `initializeRuntime`, `onRuntimeCollectionChanged`, `invokeAddOrRemove`)를 PascalCase로
+  정리했습니다. `ReactiveField<T>`의 `private static readonly` 필드
+  `_defaultEqualityComparer`를 `DefaultEqualityComparer`로 정리했습니다(`static readonly`는
+  접근 제한자 무관 PascalCase 규칙). `ValueProcessor.cs`의 `MaxIntProcessor` 생성자 매개변수
+  이름이 실제로는 `Max`를 설정하면서 `min`으로 돼 있던 것도 `max`로 고쳤습니다(네이밍 규칙은
+  아니지만 오해의 소지가 있는 이름). 공개 API 변경은 없습니다(전부 `private`/생성자 매개변수).
+- `Tests/Editor/ReactiveListTests.cs`를 추가했습니다(ROADMAP P0-01). Add/AddRange/Insert/
+  Remove/RemoveAt/RemoveRange/RemoveAll/Clear/indexer-set/Move/Sort/Reverse가 올바른 인덱스·
+  아이템으로 이벤트를 발행하는지, `RemoveAll`/`Clear`가 개별 항목마다가 아니라 한 번에 묶여서
+  이벤트를 발행하는지, 잘못된 인덱스가 조용히 무시되는지, 리스너 안에서 같은 리스트를 재진입
+  변경해도 안전한지, 리스너가 dispatch 도중 자신을 구독 해제할 수 있는지, 리스너 하나가 예외를
+  던져도 나머지 리스너와 리스트 상태에 영향이 없는지(`UnityEvent`가 리스너별로 예외를 격리)를
+  검증합니다. 이 과정에서 `Move(int, int)`에 인덱스 범위 검사가 빠져 있던 것을 발견해 다른
+  변경 메서드와 동일하게 조용히 무시하도록 고쳤습니다.
+- `Tests/Editor/ReactiveFieldTests.cs`를 추가했습니다(ROADMAP P0-01). 값이 같으면 `ChangedEvent`가
+  발행되지 않는지, `SetValueAndForceInvoke`는 같은 값이어도 강제 발행하는지, 구독 시 현재 값을
+  replay하는지, `ValueProcessors` 파이프라인(여러 프로세서 체이닝, 타입 불일치 시 통과)이 값을
+  저장·발행 전에 올바르게 가공하는지, 재진입·리스너 제거·예외 격리를 검증합니다. 이 과정에서
+  `ReactiveFieldBase.ChangedEvent` 구독 시 replay(`value.Invoke(Value)`)가 `UnityEvent.Invoke`를
+  거치지 않고 새 리스너를 직접 호출해, 이 시점의 예외가 `Value` 변경 시 발행되는 예외와 달리
+  격리되지 않고 그대로 전파된다는 것을 발견해 테스트로 문서화했습니다(결함으로 보지 않고 동작
+  차이로 기록 — 별도 수정 없음).
+- **(Breaking)** Unity 비의존 순수 C# `Jeomseon.Reactive.ReactiveList<T>`/`IReadOnlyReactiveList<T>`를
+  제거했습니다. `Cysharp/ObservableCollections`의 `ObservableList<T>`가 WPF/Blazor/Unity를 모두
+  지원하는 성숙한 대체재라 자체 구현을 유지할 근거가 약했습니다(AGENTS.md 판단 순서 1-3번).
+  `IReadOnlyReactiveList<T>`·`AddOrRemoveHandler<T>`·`ElementChangedHandler<T>`는
+  `Jeomseon.UnityReactive` namespace로 옮겼습니다(더 이상 두 namespace로 나눌 이유가 없음).
+- `ReactiveList<T>` 내부 구현을 `ObservableList<T>`(`org.nuget.observablecollections`) 기반으로
+  교체했습니다. Add/Remove/Replace/Move/Clear/Sort/Reverse 로직을 직접 구현하지 않고 위임하며, 그
+  결과 이전에 없던 **`Move(int oldIndex, int newIndex)`**를 지원합니다. Inspector에 보이는 필드는
+  변경 전과 동일한 `[SerializeField] private List<T> list`이며, `ISerializationCallbackReceiver`로
+  Inspector 편집/저장 시점에만 내부 `ObservableList<T>`와 동기화합니다 — Inspector UI·직렬화 데이터
+  포맷은 기존과 완전히 동일합니다.
+  - **의존성 조사**: `Cysharp/ObservableCollections`는 UPM으로 직접 배포되지 않고(저장소에
+    `package.json` 없음, NuGet 전용), 커뮤니티 OpenUPM 미러(`com.cysharp.observablecollections`)는
+    2022-09-30(`1.1.3`)에서 멈춰 있어 사용하지 않았습니다. 대신 UnityNuGet 공식 레지스트리
+    (`https://unitynuget-registry.openupm.com`, scope `org.nuget`)가 NuGet 릴리스와 동기화되는
+    `org.nuget.observablecollections`(현재 3.3.4, 2025-07-04 갱신)를 제공해 이걸 채택했습니다.
+    `package.json`에 `org.nuget.observablecollections: 3.3.4`를 의존성으로 추가했고, Runtime
+    asmdef에 `ObservableCollections` 참조를 추가했습니다. 실제 패키지 tarball을 내려받아 DLL 기준
+    `dotnet build` 오류 0개까지 확인했습니다.
+  - **API 축소**: `ObservableList<T>`에 대응 API가 없는 `Capacity`, `BinarySearch`, `ConvertAll`,
+    `TrimExcess`는 제거했습니다. 나머지 List<T> 호환 메서드(`Find`, `FindAll`, `FindIndex`,
+    `GetRange`, `LastIndexOf`, `TrueForAll` 등)는 유지됩니다.
+- `ReactiveField<T>`의 `ValueProcessors`(`List<IValueProcessor>`)가
+  `#if SERIALIZEREFERENCEDROPDOWN_INSTALLED`로 완전히 게이트돼 있어 이 서드파티 패키지가 없으면
+  `ReactiveField<T>` 자체가 컴파일 대상에서 빠지던 것을 제거했습니다. Unity 내장
+  `[SerializeReference]`만 사용하도록 정리해 외부 의존성 없이 항상 컴파일됩니다(Inspector에서
+  다형성 타입 선택 UI는 Unity 기본 UI로 대체 — 커스텀 드롭다운 검색은 빠집니다).
+- R3(Cysharp)는 필수 의존성으로 두지 않았습니다 — 이 패키지는 R3 유무와 무관하게 독립적으로
+  동작해야 한다는 기준에 따라, R3가 프로젝트에 별도로 추가된 경우에만 호환되는 선택적 확장을
+  이후 추가할 계획입니다(ROADMAP P1-01 참고).
+- 향후 계획: 직렬화 가능한 `ReactiveDictionary`를 검토 중입니다. `ObservableCollections`에
+  `ObservableDictionary<TKey,TValue>`가 있지만 Unity는 `Dictionary<K,V>`를 Inspector에서 직렬화하지
+  못해(List<T>와 달리) 커스텀 직렬화 스킴이 필요해 지금은 보류합니다. Unity 6000.6에서 Dictionary
+  직렬화가 공식 지원될 예정이라, 6000.6 LTS 출시 후 이 패키지가 아직 1.x 이전이면 최소 지원 버전을
+  6000.6으로 올리고 그 기능을 활용하는 방향을 우선 검토합니다.
+- 이월: 정적 이벤트·전역 인스턴스의 Domain Reload 비활성화 호환성 검토는 아직 진행하지 않았습니다.
+
 ## [0.1.4] - 2026-08-11
 
-- 워크스페이스 명명 규칙에 맞춰 `ReactiveField`, `UnityReactiveList`, `SafeUnityEvent`의
+- 워크스페이스 명명 규칙에 맞춰 `ReactiveField`, `ReactiveList`, `SafeUnityEvent`의
   `[SerializeField] private`/`protected` 필드를 `_camelCase`에서 `camelCase`로 정리하고 기존
   이름을 `[FormerlySerializedAs]`로 보존했습니다. 공개 API 변경은 없으며 기존 Scene·Prefab의
   직렬화된 값은 그대로 유지됩니다.
@@ -16,11 +89,6 @@
 ## [0.1.1] - 2026-07-29
 
 - `ReactiveList<T>` 이벤트를 확인하는 `Basic Usage` 샘플을 추가했습니다.
-
-## [Unreleased]
-
-- TODO(architecture): 자체 Reactive 계약을 유지할지 R3 등 검증된 스트림 라이브러리와 어댑터 계층으로 전환할지 결정합니다.
-- 정적 이벤트와 전역 인스턴스의 Domain Reload 비활성화 호환성을 검토합니다.
 
 ## [0.1.0] - 2026-07-29
 
