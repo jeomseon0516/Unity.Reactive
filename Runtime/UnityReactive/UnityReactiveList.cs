@@ -6,6 +6,7 @@ using System.Collections.ObjectModel;
 using UnityEngine;
 using UnityEngine.Events;
 using Jeomseon.Reactive; // 공통 인터페이스/델리게이트 참조
+using UnityEngine.Serialization;
 
 namespace Jeomseon.UnityReactive
 {
@@ -13,12 +14,12 @@ namespace Jeomseon.UnityReactive
     [Serializable]
     public class UnityReactiveList<T> : IList<T>, IReadOnlyReactiveList<T>
     {
-        [SerializeField] private List<T> _list = new();
+        [SerializeField, FormerlySerializedAs("_list")] private List<T> list = new();
 
-        [SerializeField] private UnityEvent<int[], T[]> _addedEvent = new();
-        [SerializeField] private UnityEvent<int[], T[]> _removedEvent = new();
-        [SerializeField] private UnityEvent<int, T, T> _changedEvent = new();
-        [SerializeField] private UnityEvent<IReadOnlyList<T>> _reorderedEvent = new();
+        [SerializeField, FormerlySerializedAs("_addedEvent")] private UnityEvent<int[], T[]> addedEvent = new();
+        [SerializeField, FormerlySerializedAs("_removedEvent")] private UnityEvent<int[], T[]> removedEvent = new();
+        [SerializeField, FormerlySerializedAs("_changedEvent")] private UnityEvent<int, T, T> changedEvent = new();
+        [SerializeField, FormerlySerializedAs("_reorderedEvent")] private UnityEvent<IReadOnlyList<T>> reorderedEvent = new();
 
         public event AddOrRemoveHandler<T> AddedEvent
         {
@@ -26,104 +27,104 @@ namespace Jeomseon.UnityReactive
             {
                 if (value == null) return;
 
-                _addedEvent.AddListener((UnityAction<int[], T[]>)Delegate.CreateDelegate(typeof(UnityAction<int[], T[]>), value.Target, value.Method));
+                addedEvent.AddListener((UnityAction<int[], T[]>)Delegate.CreateDelegate(typeof(UnityAction<int[], T[]>), value.Target, value.Method));
 
-                int[] indices = new int[_list.Count];
-                for (int i = 0; i < _list.Count; i++)
+                int[] indices = new int[list.Count];
+                for (int i = 0; i < list.Count; i++)
                 {
                     indices[i] = i;
                 }
 
-                value.Invoke(indices, _list.ToArray());
+                value.Invoke(indices, list.ToArray());
             }
-            remove => removeListenerSafe(_addedEvent, value);
+            remove => removeListenerSafe(addedEvent, value);
         }
 
         public event AddOrRemoveHandler<T> RemovedEvent
         {
-            add => addListenerSafe(_removedEvent, value);
-            remove => removeListenerSafe(_removedEvent, value);
+            add => addListenerSafe(removedEvent, value);
+            remove => removeListenerSafe(removedEvent, value);
         }
 
         public event ElementChangedHandler<T> ChangedEvent
         {
-            add => addListenerSafe(_changedEvent, value);
-            remove => removeListenerSafe(_changedEvent, value);
+            add => addListenerSafe(changedEvent, value);
+            remove => removeListenerSafe(changedEvent, value);
         }
 
         public event Action<IReadOnlyList<T>> ReorderedEvent
         {
-            add { if (value == null) return; _reorderedEvent.AddListener((UnityAction<IReadOnlyList<T>>)Delegate.CreateDelegate(typeof(UnityAction<IReadOnlyList<T>>), value.Target, value.Method)); }
-            remove { if (value == null) return; _reorderedEvent.RemoveListener((UnityAction<IReadOnlyList<T>>)Delegate.CreateDelegate(typeof(UnityAction<IReadOnlyList<T>>), value.Target, value.Method)); }
+            add { if (value == null) return; reorderedEvent.AddListener((UnityAction<IReadOnlyList<T>>)Delegate.CreateDelegate(typeof(UnityAction<IReadOnlyList<T>>), value.Target, value.Method)); }
+            remove { if (value == null) return; reorderedEvent.RemoveListener((UnityAction<IReadOnlyList<T>>)Delegate.CreateDelegate(typeof(UnityAction<IReadOnlyList<T>>), value.Target, value.Method)); }
         }
 
-        public int Count => _list.Count;
-        public int Capacity { get => _list.Capacity; set => _list.Capacity = value; }
+        public int Count => list.Count;
+        public int Capacity { get => list.Capacity; set => list.Capacity = value; }
         public bool IsReadOnly => false;
 
         public T this[int index]
         {
-            get => _list[index];
+            get => list[index];
             set
             {
-                if (index < 0 || index >= _list.Count) return;
+                if (index < 0 || index >= list.Count) return;
 
-                T prev = _list[index];
-                _list[index] = value;
-                _changedEvent.Invoke(index, prev, value);
+                T prev = list[index];
+                list[index] = value;
+                changedEvent.Invoke(index, prev, value);
             }
         }
 
-        public void AddListenerToAddedEventWithoutNotify(AddOrRemoveHandler<T> onAddAction) => addListenerSafe(_addedEvent, onAddAction);
+        public void AddListenerToAddedEventWithoutNotify(AddOrRemoveHandler<T> onAddAction) => addListenerSafe(addedEvent, onAddAction);
 
         // -------------------- Add / Insert --------------------
-        public void Add(T item) => insertInternal(_list.Count, item);
+        public void Add(T item) => insertInternal(list.Count, item);
         public void Insert(int index, T item) => insertInternal(index, item);
 
         private void insertInternal(int index, T item)
         {
-            if (index < 0 || index > _list.Count) return;
+            if (index < 0 || index > list.Count) return;
 
-            _list.Insert(index, item);
-            _addedEvent.Invoke(new int[] { index }, new T[] { item });
+            list.Insert(index, item);
+            addedEvent.Invoke(new int[] { index }, new T[] { item });
         }
 
-        public void AddRange(IEnumerable<T> collection) => InsertRange(_list.Count, collection);
+        public void AddRange(IEnumerable<T> collection) => InsertRange(list.Count, collection);
         public void InsertRange(int index, IEnumerable<T> collection)
         {
-            if (collection == null || index < 0 || index > _list.Count) return;
+            if (collection == null || index < 0 || index > list.Count) return;
 
             int diff = getCollectionCount(collection);
             if (diff <= 0) return;
 
-            _list.InsertRange(index, collection);
+            list.InsertRange(index, collection);
             getArrayFromCollection(index, diff, collection, out int[] indices, out T[] arr);
-            _addedEvent.Invoke(indices, arr);
+            addedEvent.Invoke(indices, arr);
         }
 
         // -------------------- Remove --------------------
         public bool Remove(T item)
         {
-            int index = _list.IndexOf(item);
+            int index = list.IndexOf(item);
             if (index < 0) return false;
-            _list.RemoveAt(index);
-            _removedEvent.Invoke(new[] { index }, new T[] { item });
+            list.RemoveAt(index);
+            removedEvent.Invoke(new[] { index }, new T[] { item });
             return true;
         }
 
         public void RemoveAt(int index)
         {
-            if (index < 0 || index >= _list.Count) return;
-            T item = _list[index];
-            _list.RemoveAt(index);
-            _removedEvent.Invoke(new[] { index }, new T[] { item });
+            if (index < 0 || index >= list.Count) return;
+            T item = list[index];
+            list.RemoveAt(index);
+            removedEvent.Invoke(new[] { index }, new T[] { item });
         }
 
         public void RemoveRange(int index, int count)
         {
-            if (index < 0 || count < 0 || index + count > _list.Count) return;
+            if (index < 0 || count < 0 || index + count > list.Count) return;
 
-            T[] items = _list.GetRange(index, count).ToArray();
+            T[] items = list.GetRange(index, count).ToArray();
             int[] indices = new int[items.Length];
 
             for (int i = 0; i < count; i++)
@@ -131,18 +132,18 @@ namespace Jeomseon.UnityReactive
                 indices[i] = index + i;
             }
 
-            _list.RemoveRange(index, count);
-            _removedEvent.Invoke(indices, items);
+            list.RemoveRange(index, count);
+            removedEvent.Invoke(indices, items);
         }
 
         public int RemoveAll(Predicate<T> match)
         {
             List<(int, T)> values = new();
-            for (int i = 0; i < _list.Count; i++)
+            for (int i = 0; i < list.Count; i++)
             {
-                if (!match.Invoke(_list[i])) continue;
+                if (!match.Invoke(list[i])) continue;
 
-                values.Add((i, _list[i]));
+                values.Add((i, list[i]));
             }
 
             int count = 0;
@@ -156,8 +157,8 @@ namespace Jeomseon.UnityReactive
                     items[i] = values[i].Item2;
                 }
 
-                count = _list.RemoveAll(match);
-                _removedEvent.Invoke(indices, items);
+                count = list.RemoveAll(match);
+                removedEvent.Invoke(indices, items);
             }
 
             return count;
@@ -165,17 +166,17 @@ namespace Jeomseon.UnityReactive
 
         public void Clear()
         {
-            if (_list.Count == 0) return;
-            T[] items = _list.ToArray();
-            int[] indices = new int[_list.Count];
+            if (list.Count == 0) return;
+            T[] items = list.ToArray();
+            int[] indices = new int[list.Count];
 
             for (int i = 0; i < items.Length; i++)
             {
                 indices[i] = i;
             }
 
-            _list.Clear();
-            _removedEvent.Invoke(indices, items);
+            list.Clear();
+            removedEvent.Invoke(indices, items);
         }
 
         // -------------------- Helpers --------------------
@@ -233,75 +234,75 @@ namespace Jeomseon.UnityReactive
 
         public void Reverse(int index, int count, IComparer<T> comparer)
         {
-            _list.Reverse(index, count);
-            _reorderedEvent.Invoke(_list);
+            list.Reverse(index, count);
+            reorderedEvent.Invoke(list);
         }
 
         public void Reverse()
         {
-            _list.Reverse();
-            _reorderedEvent.Invoke(_list);
+            list.Reverse();
+            reorderedEvent.Invoke(list);
         }
 
         public void Sort(Comparison<T> comparison)
         {
-            _list.Sort(comparison);
-            _reorderedEvent.Invoke(_list);
+            list.Sort(comparison);
+            reorderedEvent.Invoke(list);
         }
 
         public void Sort(int index, int count, IComparer<T> comparer)
         {
-            _list.Sort(index, count, comparer);
-            _reorderedEvent.Invoke(_list);
+            list.Sort(index, count, comparer);
+            reorderedEvent.Invoke(list);
         }
 
         public void Sort()
         {
-            _list.Sort();
-            _reorderedEvent.Invoke(_list);
+            list.Sort();
+            reorderedEvent.Invoke(list);
         }
 
         public void Sort(IComparer<T> comparer)
         {
-            _list.Sort(comparer);
-            _reorderedEvent.Invoke(_list);
+            list.Sort(comparer);
+            reorderedEvent.Invoke(list);
         }
 
         // -------------------- 기타 List<T> Wrappers --------------------
-        public List<T> ToList() => _list.ToList();
-        public T[] ToArray() => _list.ToArray();
-        public ReadOnlyCollection<T> AsReadOnly() => _list.AsReadOnly();
-        public int BinarySearch(int index, int count, T item, IComparer<T> comparer) => _list.BinarySearch(index, count, item, comparer);
-        public int BinarySearch(T item) => _list.BinarySearch(item);
-        public int BinarySearch(T item, IComparer<T> comparer) => _list.BinarySearch(item, comparer);
-        public bool Contains(T item) => _list.Contains(item);
-        public List<TOutput> ConvertAll<TOutput>(Converter<T, TOutput> converter) => _list.ConvertAll(converter);
-        public void CopyTo(T[] array, int arrayIndex) => _list.CopyTo(array, arrayIndex);
-        public void CopyTo(T[] array) => _list.CopyTo(array);
-        public void CopyTo(int index, T[] array, int arrayIndex, int count) => _list.CopyTo(index, array, arrayIndex, count);
-        public bool Exist(Predicate<T> match) => _list.Exists(match);
-        public T Find(Predicate<T> match) => _list.Find(match);
-        public List<T> FindAll(Predicate<T> match) => _list.FindAll(match);
-        public int FindIndex(int startIndex, int count, Predicate<T> match) => _list.FindIndex(startIndex, count, match);
-        public int FindIndex(int startIndex, Predicate<T> match) => _list.FindIndex(startIndex, match);
-        public int FindIndex(Predicate<T> match) => _list.FindIndex(match);
-        public void ForEach(Action<T> action) => _list.ForEach(action);
-        public List<T> GetRange(int index, int count) => _list.GetRange(index, count);
-        public int IndexOf(T item, int index, int count) => _list.IndexOf(item, index, count);
-        public int IndexOf(T item, int index) => _list.IndexOf(item, index);
-        public int IndexOf(T item) => _list.IndexOf(item);
-        public int LastIndexOf(T item) => _list.LastIndexOf(item);
-        public int LastIndexOf(T item, int index) => _list.LastIndexOf(item, index);
-        public int LastIndexOf(T item, int index, int count) => _list.LastIndexOf(item, index, count);
-        public void TrimExcess() => _list.TrimExcess();
-        public bool TrueForAll(Predicate<T> match) => _list.TrueForAll(match);
-        public List<T>.Enumerator GetEnumerator() => _list.GetEnumerator();
-        IEnumerator<T> IEnumerable<T>.GetEnumerator() => _list.GetEnumerator();
-        IEnumerator IEnumerable.GetEnumerator() => _list.GetEnumerator();
+        public List<T> ToList() => list.ToList();
+        public T[] ToArray() => list.ToArray();
+        public ReadOnlyCollection<T> AsReadOnly() => list.AsReadOnly();
+        public int BinarySearch(int index, int count, T item, IComparer<T> comparer) => list.BinarySearch(index, count, item, comparer);
+        public int BinarySearch(T item) => list.BinarySearch(item);
+        public int BinarySearch(T item, IComparer<T> comparer) => list.BinarySearch(item, comparer);
+        public bool Contains(T item) => list.Contains(item);
+        public List<TOutput> ConvertAll<TOutput>(Converter<T, TOutput> converter) => list.ConvertAll(converter);
+        public void CopyTo(T[] array, int arrayIndex) => list.CopyTo(array, arrayIndex);
+        public void CopyTo(T[] array) => list.CopyTo(array);
+        public void CopyTo(int index, T[] array, int arrayIndex, int count) => list.CopyTo(index, array, arrayIndex, count);
+        public bool Exist(Predicate<T> match) => list.Exists(match);
+        public T Find(Predicate<T> match) => list.Find(match);
+        public List<T> FindAll(Predicate<T> match) => list.FindAll(match);
+        public int FindIndex(int startIndex, int count, Predicate<T> match) => list.FindIndex(startIndex, count, match);
+        public int FindIndex(int startIndex, Predicate<T> match) => list.FindIndex(startIndex, match);
+        public int FindIndex(Predicate<T> match) => list.FindIndex(match);
+        public void ForEach(Action<T> action) => list.ForEach(action);
+        public List<T> GetRange(int index, int count) => list.GetRange(index, count);
+        public int IndexOf(T item, int index, int count) => list.IndexOf(item, index, count);
+        public int IndexOf(T item, int index) => list.IndexOf(item, index);
+        public int IndexOf(T item) => list.IndexOf(item);
+        public int LastIndexOf(T item) => list.LastIndexOf(item);
+        public int LastIndexOf(T item, int index) => list.LastIndexOf(item, index);
+        public int LastIndexOf(T item, int index, int count) => list.LastIndexOf(item, index, count);
+        public void TrimExcess() => list.TrimExcess();
+        public bool TrueForAll(Predicate<T> match) => list.TrueForAll(match);
+        public List<T>.Enumerator GetEnumerator() => list.GetEnumerator();
+        IEnumerator<T> IEnumerable<T>.GetEnumerator() => list.GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => list.GetEnumerator();
 
         // 생성자
         public UnityReactiveList() { }
-        public UnityReactiveList(int capacity) => _list.Capacity = capacity;
-        public UnityReactiveList(IEnumerable<T> collection) => _list = new List<T>(collection);
+        public UnityReactiveList(int capacity) => list.Capacity = capacity;
+        public UnityReactiveList(IEnumerable<T> collection) => list = new List<T>(collection);
     }
 }
