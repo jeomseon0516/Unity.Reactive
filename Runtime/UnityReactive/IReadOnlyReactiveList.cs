@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Jeomseon.Reactive
+namespace Jeomseon.UnityReactive
 {
     public delegate void ElementChangedHandler<in T>(int index, T previous, T current);
     public delegate void AddOrRemoveHandler<in T>(int[] indices, T[] items);
