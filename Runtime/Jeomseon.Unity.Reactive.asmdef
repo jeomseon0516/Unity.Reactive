@@ -2,7 +2,8 @@
   "name": "Jeomseon.Unity.Reactive",
   "rootNamespace": "Jeomseon",
   "references": [
-    "Jeomseon.Unity.Core"
+    "Jeomseon.Unity.Core",
+    "ObservableCollections"
   ],
   "autoReferenced": true,
   "noEngineReferences": false

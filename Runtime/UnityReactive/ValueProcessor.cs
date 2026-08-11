@@ -23,7 +23,7 @@ namespace Jeomseon.UnityReactive
             return value is int intValue && Mathf.Min(intValue, Max) is T newValue ? newValue : value;
         }
 
-        public MaxIntProcessor(int min) => Max = min;
+        public MaxIntProcessor(int max) => Max = max;
     }
     
     [System.Serializable]
