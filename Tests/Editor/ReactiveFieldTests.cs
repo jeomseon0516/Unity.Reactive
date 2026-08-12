@@ -122,6 +122,33 @@ namespace Jeomseon.Tests.Reactive
         }
 
         [Test]
+        public void ValueProcessors_NullElement_IsSkipped()
+        {
+            ReactiveField<int> field = new();
+            field.ValueProcessors.Add(null);
+            field.ValueProcessors.Add(new MaxIntProcessor(10));
+
+            Assert.DoesNotThrow(() => field.Value = 100);
+            Assert.That(field.Value, Is.EqualTo(10));
+        }
+
+        [Test]
+        public void ValueProcessorTypes_ParameterlessConstruction_SucceedsForSelector()
+        {
+            Type[] processorTypes =
+            {
+                typeof(ClampIntProcessor),
+                typeof(MinIntProcessor),
+                typeof(MaxIntProcessor)
+            };
+
+            foreach (Type processorType in processorTypes)
+            {
+                Assert.That(Activator.CreateInstance(processorType), Is.InstanceOf<IValueProcessor>());
+            }
+        }
+
+        [Test]
         public void ToString_ReturnsValueToString()
         {
             ReactiveField<int> field = new();

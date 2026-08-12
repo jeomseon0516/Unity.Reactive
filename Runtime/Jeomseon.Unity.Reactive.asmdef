@@ -2,6 +2,7 @@
   "name": "Jeomseon.Unity.Reactive",
   "rootNamespace": "Jeomseon",
   "references": [
+    "Jeomseon.Unity.Attributes",
     "Jeomseon.Unity.Core",
     "ObservableCollections"
   ],

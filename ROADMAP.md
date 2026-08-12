@@ -39,16 +39,23 @@
    - 순수 C# `ReactiveList<T>` 제거로 "분리"가 아니라 "통합"으로 해소됐습니다.
      `IReadOnlyReactiveList<T>`/`AddOrRemoveHandler<T>`/`ElementChangedHandler<T>`는
      `Jeomseon.UnityReactive` namespace 하나로 합쳤습니다.
-4. **P2-01 — 알림 할당 최적화**
+4. **P1-03 — ValueProcessor 타입 선택 UI 복구 (구현 완료, Unity 검증 필요)**
+   - 외부 `SerializeReferenceDropdown` 조건부 컴파일은 되살리지 않고, 범용 기능을 소유하는
+     `Jeomseon.Unity.Attributes`의 `[SerializeReferenceSelector]`를 사용합니다.
+   - `ValueProcessors` 리스트에서 `ClampIntProcessor`, `MinIntProcessor`, `MaxIntProcessor`, `(None)`을
+     선택할 수 있으며, 각 processor는 Selector 생성을 위한 매개변수 없는 생성자를 제공합니다.
+   - `(None)` 원소는 값 처리 중 건너뛰며, 생성자와 null 원소 계약을 EditMode 테스트로 검증합니다.
+   - `ReactiveSample` Scene에 직렬화된 `ClampIntProcessor(0, 10)`을 포함합니다.
+5. **P2-01 — 알림 할당 최적화**
    - 변경마다 생성되는 index/item 배열을 읽기 전용 이벤트 구조로 대체할지 측정합니다.
    - `ObservableList<T>` 자체의 `Span<T>` 기반 API를 얼마나 활용할 수 있는지도 함께 검토합니다.
-5. **P3-01 — 선택적 R3 호환 확장**
+6. **P3-01 — 선택적 R3 호환 확장**
    - `#if` 조건부 컴파일(`ReactiveField`가 쓰던 `SERIALIZEREFERENCEDROPDOWN_INSTALLED` 패턴과 동일)로
      R3가 있을 때만 컴파일되는 `IReadOnlyReactiveList<T>`/`IReadOnlyReactiveField<T>` →
      `Observable<T>` 변환 확장 메서드를 추가합니다. `ObservableCollections.R3`도 UnityNuGet에
      `org.nuget.observablecollections.r3`로 등록돼 있어(확인 완료) 필요 시 같은 경로로 설치
      가능합니다. R3 자체는 여전히 필수 의존성이 아닙니다.
-6. **P3-02 — 직렬화 가능한 ReactiveDictionary (보류)**
+7. **P3-02 — 직렬화 가능한 ReactiveDictionary (보류)**
    - `ObservableCollections`에 `ObservableDictionary<TKey,TValue>`가 있지만 Unity는
      `Dictionary<K,V>`를 Inspector에서 직렬화하지 못해 커스텀 key/value 배열 직렬화 스킴이
      필요합니다. Unity 6000.6에서 Dictionary 직렬화가 공식 지원될 예정이라(2026-08-11 확인,
