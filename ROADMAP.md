@@ -4,15 +4,18 @@
 
 ## 작업 순서
 
-1. **P0-01 — 이벤트 정확성 테스트 (완료, Unity 실행 검증만 남음)**
+1. **P0-01 — 이벤트 정확성 테스트 (완료, 사용자 Unity Test Runner 검증 통과)**
    - Add/Remove/Replace/Move/Clear와 재진입, listener 제거, 예외 발생 시 동작을 검증합니다.
-   - `Tests/Editor/ReactiveListTests.cs`(21개), `Tests/Editor/ReactiveFieldTests.cs`(13개)
-     추가 완료, `dotnet build` 오류 0개 확인. Unity Test Runner 실제 실행은 사용자 확인 필요.
+   - `Tests/Editor/ReactiveListTests.cs`, `Tests/Editor/ReactiveFieldTests.cs` 추가 완료,
+     `dotnet build` 오류 0개 확인, 사용자가 Unity Test Runner에서 전체 PASS를 확인했습니다.
    - 검증 중 발견한 결함: `ReactiveList<T>.Move`에 인덱스 범위 검사가 빠져 있었음(수정 완료).
-   - 검증 중 발견한 동작(결함 아님, 테스트로 문서화): `ReactiveFieldBase.ChangedEvent`의 구독 시
-     replay(`value.Invoke(Value)`)는 `UnityEvent.Invoke`를 거치지 않고 새 리스너를 직접
-     호출하므로, 이 시점의 예외는 `Value` 변경 시 발행되는 예외(UnityEvent 경유, 리스너별 격리)와
-     달리 격리되지 않고 구독 호출자에게 그대로 전파됩니다.
+   - **정정**: 처음에는 "리스너 하나가 던진 예외가 다른 리스너·상태 변경에 영향을 주지 않는 것은
+     `UnityEvent`가 리스너별로 예외를 격리하기 때문"이라고 잘못 판단했습니다. 실제로는
+     `UnityEventBase.Invoke`(디컴파일로 확인)에 개별 호출 try/catch가 전혀 없어 전혀 격리되지
+     않았습니다. `ReactiveFieldBase`/`ReactiveList`가 런타임 리스너를 격리 wrapper로 감싸 등록하는
+     방식으로 실제 격리를 구현했습니다(상세는 `CHANGELOG.md` `[0.2.0]` 참고). 이 과정에서 발견한
+     추가 결함(동일 델리게이트 중복 구독 시 단일 Dictionary 매핑이 첫 wrapper를 덮어써 생기는 리스너
+     누수)도 `Stack` 기반으로 교체해 해결했습니다.
    - `ReactiveList<T>`가 이제 `ObservableList<T>`(ObservableCollections)에 위임하므로,
      검증 범위는 "우리 어댑터가 CollectionChanged를 UnityEvent로 정확히 중계하는지"·
      "Clear/Sort/Reverse의 일시 구독 해제-재구독-수동 발행이 안전한지"에 집중합니다.

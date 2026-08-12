@@ -27,13 +27,29 @@ namespace Jeomseon.UnityReactive
 
         [NonSerialized] private ObservableList<T> _runtime;
 
+        // UnityEvent는 리스너 하나가 던진 예외를 격리하지 않습니다(UnityEventBase.Invoke는 개별 호출에
+        // try/catch가 없어, 하나가 던지면 나머지 리스너 호출이 그대로 중단되고 예외가 호출자까지
+        // 전파됩니다). addedEvent 등 필드 자체(및 Inspector persistent listener 직렬화)는 그대로 두고,
+        // AddListener로 등록하는 런타임 리스너만 격리 wrapper로 감싸 등록합니다. 제거 시 원본으로
+        // 다시 찾을 수 있도록 매핑을 보관합니다. Delegate.CreateDelegate(Target, Method)로 UnityAction을
+        // 재구성하던 이전 방식은 이미 combine된 멀티캐스트 델리게이트가 들어오면 Target/Method가
+        // 마지막 호출 대상만 가리켜 나머지 구독자가 조용히 누락되는 결함도 있었는데, 원본을 그대로
+        // 호출하는 wrapper로 대체해 함께 해결됩니다. 동일 델리게이트(같은 Target+Method)가 여러 번
+        // 구독될 수 있어(표준 멀티캐스트 이벤트 관례상 유효한 사용) 키당 wrapper 하나만 저장하면
+        // 두 번째 구독이 첫 번째 매핑을 덮어써 첫 wrapper가 영원히 제거 불가능해지는 누수가 생깁니다.
+        // Stack으로 보관해 add/remove를 LIFO로 짝지어 이 문제를 없앱니다.
+        [NonSerialized] private readonly Dictionary<AddOrRemoveHandler<T>, Stack<UnityAction<int[], T[]>>> _addedListeners = new();
+        [NonSerialized] private readonly Dictionary<AddOrRemoveHandler<T>, Stack<UnityAction<int[], T[]>>> _removedListeners = new();
+        [NonSerialized] private readonly Dictionary<ElementChangedHandler<T>, Stack<UnityAction<int, T, T>>> _changedListeners = new();
+        [NonSerialized] private readonly Dictionary<Action<IReadOnlyList<T>>, Stack<UnityAction<IReadOnlyList<T>>>> _reorderedListeners = new();
+
         public event AddOrRemoveHandler<T> AddedEvent
         {
             add
             {
                 if (value == null) return;
 
-                addedEvent.AddListener((UnityAction<int[], T[]>)Delegate.CreateDelegate(typeof(UnityAction<int[], T[]>), value.Target, value.Method));
+                addedEvent.AddListener(RegisterIsolated(_addedListeners, value));
 
                 int[] indices = new int[_runtime.Count];
                 for (int i = 0; i < _runtime.Count; i++)
@@ -43,25 +59,25 @@ namespace Jeomseon.UnityReactive
 
                 value.Invoke(indices, _runtime.ToArray());
             }
-            remove => RemoveListenerSafe(addedEvent, value);
+            remove => RemoveListenerSafe(addedEvent, _addedListeners, value);
         }
 
         public event AddOrRemoveHandler<T> RemovedEvent
         {
-            add => AddListenerSafe(removedEvent, value);
-            remove => RemoveListenerSafe(removedEvent, value);
+            add => AddListenerSafe(removedEvent, _removedListeners, value);
+            remove => RemoveListenerSafe(removedEvent, _removedListeners, value);
         }
 
         public event ElementChangedHandler<T> ChangedEvent
         {
-            add => AddListenerSafe(changedEvent, value);
-            remove => RemoveListenerSafe(changedEvent, value);
+            add => AddListenerSafe(changedEvent, _changedListeners, value);
+            remove => RemoveListenerSafe(changedEvent, _changedListeners, value);
         }
 
         public event Action<IReadOnlyList<T>> ReorderedEvent
         {
-            add { if (value == null) return; reorderedEvent.AddListener((UnityAction<IReadOnlyList<T>>)Delegate.CreateDelegate(typeof(UnityAction<IReadOnlyList<T>>), value.Target, value.Method)); }
-            remove { if (value == null) return; reorderedEvent.RemoveListener((UnityAction<IReadOnlyList<T>>)Delegate.CreateDelegate(typeof(UnityAction<IReadOnlyList<T>>), value.Target, value.Method)); }
+            add => AddListenerSafe(reorderedEvent, _reorderedListeners, value);
+            remove => RemoveListenerSafe(reorderedEvent, _reorderedListeners, value);
         }
 
         public int Count => _runtime.Count;
@@ -77,7 +93,7 @@ namespace Jeomseon.UnityReactive
             }
         }
 
-        public void AddListenerToAddedEventWithoutNotify(AddOrRemoveHandler<T> onAddAction) => AddListenerSafe(addedEvent, onAddAction);
+        public void AddListenerToAddedEventWithoutNotify(AddOrRemoveHandler<T> onAddAction) => AddListenerSafe(addedEvent, _addedListeners, onAddAction);
 
         // -------------------- Add / Insert --------------------
         public void Add(T item) => _runtime.Add(item);
@@ -297,28 +313,101 @@ namespace Jeomseon.UnityReactive
         }
 
         // -------------------- Helpers --------------------
-        private static void AddListenerSafe(UnityEvent<int[], T[]> unityEvent, AddOrRemoveHandler<T> callback)
+        // 아래 4쌍은 동일한 패턴을 UnityEvent<int[],T[]> / UnityEvent<int,T,T> / UnityEvent<IReadOnlyList<T>>
+        // 각각에 대해 반복합니다(제네릭 하나로 묶으면 DynamicInvoke가 필요해져 매 호출마다 리플렉션
+        // 비용이 드는 역행이라 타입별로 분리 유지).
+        private static void AddListenerSafe(UnityEvent<int[], T[]> unityEvent, Dictionary<AddOrRemoveHandler<T>, Stack<UnityAction<int[], T[]>>> listeners, AddOrRemoveHandler<T> callback)
         {
             if (callback == null) return;
-            unityEvent.AddListener((UnityAction<int[], T[]>)Delegate.CreateDelegate(typeof(UnityAction<int[], T[]>), callback.Target, callback.Method));
+            unityEvent.AddListener(RegisterIsolated(listeners, callback));
         }
 
-        private static void RemoveListenerSafe(UnityEvent<int[], T[]> unityEvent, AddOrRemoveHandler<T> callback)
+        private static void RemoveListenerSafe(UnityEvent<int[], T[]> unityEvent, Dictionary<AddOrRemoveHandler<T>, Stack<UnityAction<int[], T[]>>> listeners, AddOrRemoveHandler<T> callback)
         {
             if (callback == null) return;
-            unityEvent.RemoveListener((UnityAction<int[], T[]>)Delegate.CreateDelegate(typeof(UnityAction<int[], T[]>), callback.Target, callback.Method));
+            if (listeners.TryGetValue(callback, out Stack<UnityAction<int[], T[]>> stack) && stack.Count > 0)
+            {
+                unityEvent.RemoveListener(stack.Pop());
+                if (stack.Count == 0) listeners.Remove(callback);
+            }
         }
 
-        private static void AddListenerSafe(UnityEvent<int, T, T> unityEvent, ElementChangedHandler<T> callback)
+        private static UnityAction<int[], T[]> RegisterIsolated(Dictionary<AddOrRemoveHandler<T>, Stack<UnityAction<int[], T[]>>> listeners, AddOrRemoveHandler<T> original)
         {
-            if (callback == null) return;
-            unityEvent.AddListener((UnityAction<int, T, T>)Delegate.CreateDelegate(typeof(UnityAction<int, T, T>), callback.Target, callback.Method));
+            UnityAction<int[], T[]> isolated = (indices, items) =>
+            {
+                try { original(indices, items); }
+                catch (Exception e) { Debug.LogException(e); }
+            };
+
+            if (!listeners.TryGetValue(original, out Stack<UnityAction<int[], T[]>> stack))
+            {
+                stack = new Stack<UnityAction<int[], T[]>>();
+                listeners[original] = stack;
+            }
+            stack.Push(isolated);
+
+            return isolated;
         }
 
-        private static void RemoveListenerSafe(UnityEvent<int, T, T> unityEvent, ElementChangedHandler<T> callback)
+        private static void AddListenerSafe(UnityEvent<int, T, T> unityEvent, Dictionary<ElementChangedHandler<T>, Stack<UnityAction<int, T, T>>> listeners, ElementChangedHandler<T> callback)
         {
             if (callback == null) return;
-            unityEvent.RemoveListener((UnityAction<int, T, T>)Delegate.CreateDelegate(typeof(UnityAction<int, T, T>), callback.Target, callback.Method));
+
+            UnityAction<int, T, T> isolated = (index, previous, current) =>
+            {
+                try { callback(index, previous, current); }
+                catch (Exception e) { Debug.LogException(e); }
+            };
+
+            if (!listeners.TryGetValue(callback, out Stack<UnityAction<int, T, T>> stack))
+            {
+                stack = new Stack<UnityAction<int, T, T>>();
+                listeners[callback] = stack;
+            }
+            stack.Push(isolated);
+
+            unityEvent.AddListener(isolated);
+        }
+
+        private static void RemoveListenerSafe(UnityEvent<int, T, T> unityEvent, Dictionary<ElementChangedHandler<T>, Stack<UnityAction<int, T, T>>> listeners, ElementChangedHandler<T> callback)
+        {
+            if (callback == null) return;
+            if (listeners.TryGetValue(callback, out Stack<UnityAction<int, T, T>> stack) && stack.Count > 0)
+            {
+                unityEvent.RemoveListener(stack.Pop());
+                if (stack.Count == 0) listeners.Remove(callback);
+            }
+        }
+
+        private static void AddListenerSafe(UnityEvent<IReadOnlyList<T>> unityEvent, Dictionary<Action<IReadOnlyList<T>>, Stack<UnityAction<IReadOnlyList<T>>>> listeners, Action<IReadOnlyList<T>> callback)
+        {
+            if (callback == null) return;
+
+            UnityAction<IReadOnlyList<T>> isolated = snapshot =>
+            {
+                try { callback(snapshot); }
+                catch (Exception e) { Debug.LogException(e); }
+            };
+
+            if (!listeners.TryGetValue(callback, out Stack<UnityAction<IReadOnlyList<T>>> stack))
+            {
+                stack = new Stack<UnityAction<IReadOnlyList<T>>>();
+                listeners[callback] = stack;
+            }
+            stack.Push(isolated);
+
+            unityEvent.AddListener(isolated);
+        }
+
+        private static void RemoveListenerSafe(UnityEvent<IReadOnlyList<T>> unityEvent, Dictionary<Action<IReadOnlyList<T>>, Stack<UnityAction<IReadOnlyList<T>>>> listeners, Action<IReadOnlyList<T>> callback)
+        {
+            if (callback == null) return;
+            if (listeners.TryGetValue(callback, out Stack<UnityAction<IReadOnlyList<T>>> stack) && stack.Count > 0)
+            {
+                unityEvent.RemoveListener(stack.Pop());
+                if (stack.Count == 0) listeners.Remove(callback);
+            }
         }
     }
 }

@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-08-12
+
 - **(Breaking)** `UnityReactiveList<T>`를 `ReactiveList<T>`로 이름을 줄였습니다. 순수 C#
   `ReactiveList<T>`를 이번에 제거해 이름이 비어 있었고, `Unity` 접두사를 붙이면 이 패키지의
   다른 타입(`ReactiveField<T>`)과도 이름 스타일이 안 맞아 반대로 짧은 쪽으로 통일했습니다.
@@ -26,18 +28,39 @@
   Remove/RemoveAt/RemoveRange/RemoveAll/Clear/indexer-set/Move/Sort/Reverse가 올바른 인덱스·
   아이템으로 이벤트를 발행하는지, `RemoveAll`/`Clear`가 개별 항목마다가 아니라 한 번에 묶여서
   이벤트를 발행하는지, 잘못된 인덱스가 조용히 무시되는지, 리스너 안에서 같은 리스트를 재진입
-  변경해도 안전한지, 리스너가 dispatch 도중 자신을 구독 해제할 수 있는지, 리스너 하나가 예외를
-  던져도 나머지 리스너와 리스트 상태에 영향이 없는지(`UnityEvent`가 리스너별로 예외를 격리)를
-  검증합니다. 이 과정에서 `Move(int, int)`에 인덱스 범위 검사가 빠져 있던 것을 발견해 다른
-  변경 메서드와 동일하게 조용히 무시하도록 고쳤습니다.
+  변경해도 안전한지, 리스너가 dispatch 도중 자신을 구독 해제할 수 있는지를 검증합니다. 이
+  과정에서 `Move(int, int)`에 인덱스 범위 검사가 빠져 있던 것을 발견해 다른 변경 메서드와
+  동일하게 조용히 무시하도록 고쳤습니다.
 - `Tests/Editor/ReactiveFieldTests.cs`를 추가했습니다(ROADMAP P0-01). 값이 같으면 `ChangedEvent`가
   발행되지 않는지, `SetValueAndForceInvoke`는 같은 값이어도 강제 발행하는지, 구독 시 현재 값을
   replay하는지, `ValueProcessors` 파이프라인(여러 프로세서 체이닝, 타입 불일치 시 통과)이 값을
-  저장·발행 전에 올바르게 가공하는지, 재진입·리스너 제거·예외 격리를 검증합니다. 이 과정에서
-  `ReactiveFieldBase.ChangedEvent` 구독 시 replay(`value.Invoke(Value)`)가 `UnityEvent.Invoke`를
-  거치지 않고 새 리스너를 직접 호출해, 이 시점의 예외가 `Value` 변경 시 발행되는 예외와 달리
-  격리되지 않고 그대로 전파된다는 것을 발견해 테스트로 문서화했습니다(결함으로 보지 않고 동작
-  차이로 기록 — 별도 수정 없음).
+  저장·발행 전에 올바르게 가공하는지, 재진입·리스너 제거를 검증합니다.
+- **(중요, 정정)** 위 두 테스트를 처음 작성할 때 "리스너 하나가 예외를 던져도 나머지 리스너와
+  상태 변경에 영향이 없는 것은 `UnityEvent`가 리스너별로 예외를 격리하기 때문"이라고 잘못
+  판단했습니다. `UnityEngine.CoreModule.dll`의 `UnityEventBase.Invoke`를 디컴파일해 확인한 결과
+  실제로는 개별 리스너 호출에 try/catch가 전혀 없어, 하나가 던지면 나머지 리스너 호출이 그대로
+  중단되고 예외가 호출자까지 전파됩니다(표준 C# 멀티캐스트 delegate와 동일한 동작). 즉 이 패키지가
+  보장한다고 문서화했던 "리스너 격리"는 실제로는 전혀 격리되지 않고 있었습니다.
+  `ReactiveFieldBase`/`ReactiveList`가 `AddListener`로 등록하는 런타임 리스너를 격리 wrapper
+  (`try`/`catch` + `Debug.LogException`)로 감싸 등록하도록 고쳐 실제로 격리를 구현했습니다.
+  `changedEvent`/`addedEvent` 등 `[SerializeField] UnityEvent<...>` 필드 자체와 Inspector
+  persistent listener 직렬화 경로는 그대로 둡니다(런타임 리스너 등록 경로에만 적용).
+  `Delegate.CreateDelegate(Target, Method)`로 `UnityAction`을 재구성하던 기존 방식은 이미
+  combine된 멀티캐스트 델리게이트가 들어오면 마지막 호출 대상만 남기고 나머지를 조용히 누락시키는
+  결함도 있었는데, 원본을 그대로 호출하는 wrapper로 대체해 이 문제도 함께 해결했습니다.
+- **(버그 수정)** 위 wrapper 등록을 `Dictionary<TDelegate, UnityAction<...>>` 단일 매핑으로
+  구현했을 때, 동일 델리게이트(같은 Target+Method)를 두 번 구독하면 두 번째 구독이 첫 번째
+  wrapper 매핑을 덮어써 이후 한 번만 구독 해지해도 첫 wrapper가 영원히 제거되지 않는 리스너
+  누수가 있었습니다. `Dictionary<TDelegate, Stack<UnityAction<...>>>`로 교체해 add/remove를
+  LIFO로 정확히 짝지었습니다. `ReactiveFieldTests`/`ReactiveListTests`에 회귀 테스트를
+  추가했습니다.
+- 한 파일에 여러 타입이 섞여 있던 `ReactiveField.cs`(`IReadOnlyReactiveField<T>`/
+  `IReactiveField<T>`/`ReactiveFieldBase<T>`/`ReactiveField<T>`), `IReadOnlyReactiveList.cs`
+  (`AddOrRemoveHandler<T>`/`ElementChangedHandler<T>`/`IReadOnlyReactiveList<T>`),
+  `ValueProcessor.cs`(`IValueProcessor`/`MinIntProcessor`/`MaxIntProcessor`/`ClampIntProcessor`)를
+  타입 하나당 파일 하나로 분리하고 `Runtime/UnityReactive/{ReactiveField,ReactiveList,
+  ValueProcessor}/` 폴더로 재배치했습니다(AGENTS.md 코드 구조 규칙). namespace는 그대로
+  `Jeomseon.UnityReactive`라 공개 API 변경은 없습니다.
 - **(Breaking)** Unity 비의존 순수 C# `Jeomseon.Reactive.ReactiveList<T>`/`IReadOnlyReactiveList<T>`를
   제거했습니다. `Cysharp/ObservableCollections`의 `ObservableList<T>`가 WPF/Blazor/Unity를 모두
   지원하는 성숙한 대체재라 자체 구현을 유지할 근거가 약했습니다(AGENTS.md 판단 순서 1-3번).
