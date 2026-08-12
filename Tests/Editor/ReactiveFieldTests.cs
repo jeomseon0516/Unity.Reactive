@@ -32,7 +32,8 @@ namespace Jeomseon.Tests.Reactive
             ReactiveField<int> field = new();
             field.Value = 5;
             bool fired = false;
-            field.ChangedEvent += _ => fired = true;
+            field.ChangedEvent += _ => fired = true; // 구독 시 현재 값을 replay하므로 fired가 먼저 true가 됩니다.
+            fired = false;
 
             field.Value = 5;
 
@@ -69,7 +70,8 @@ namespace Jeomseon.Tests.Reactive
             ReactiveField<int> field = new();
             field.Value = 5;
             int callCount = 0;
-            field.ChangedEvent += _ => callCount++;
+            field.ChangedEvent += _ => callCount++; // 구독 시 현재 값을 replay하므로 callCount가 먼저 1이 됩니다.
+            callCount = 0;
 
             field.SetValueAndForceInvoke(5);
 
@@ -195,6 +197,33 @@ namespace Jeomseon.Tests.Reactive
             Assert.DoesNotThrow(() => field.Value = 10);
             Assert.That(field.Value, Is.EqualTo(10));
             Assert.That(secondListenerCalled, Is.True);
+        }
+
+        [Test]
+        public void AddListenerWithoutNotify_SameDelegateSubscribedTwice_RemovingOnceStopsExactlyOneRegistration()
+        {
+            // 예외 격리를 위해 리스너를 wrapper로 감싸 등록할 때, 동일 델리게이트(같은 Target+Method)를
+            // 두 번 구독한 뒤 한 번만 해지하면 여전히 한 번은 호출돼야 합니다(표준 멀티캐스트 이벤트
+            // 관례). 매핑을 키당 값 하나만 저장하면 두 번째 구독이 첫 번째 wrapper 참조를 덮어써
+            // 이후 제거가 불가능해지는 누수가 됩니다.
+            ReactiveField<int> field = new();
+            int callCount = 0;
+            Action<int> handler = _ => callCount++;
+            field.AddListenerWithoutNotify(handler);
+            field.AddListenerWithoutNotify(handler);
+
+            field.Value = 1;
+            Assert.That(callCount, Is.EqualTo(2));
+
+            field.ChangedEvent -= handler;
+            callCount = 0;
+            field.Value = 2;
+            Assert.That(callCount, Is.EqualTo(1));
+
+            field.ChangedEvent -= handler;
+            callCount = 0;
+            field.Value = 3;
+            Assert.That(callCount, Is.EqualTo(0));
         }
     }
 }

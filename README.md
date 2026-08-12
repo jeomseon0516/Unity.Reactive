@@ -7,7 +7,7 @@ Reactive values, lists, events, and Unity-facing reactive fields.
 OpenUPM 등록 전에는 Package Manager의 **Add package from git URL**에서 다음 주소를 사용합니다.
 
 ```text
-https://github.com/jeomseon0516/Unity.Reactive.git#v0.1.1
+https://github.com/jeomseon0516/Unity.Reactive.git#v0.2.0
 ```
 
 ## 리팩토링 방침

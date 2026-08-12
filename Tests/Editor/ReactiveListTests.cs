@@ -38,9 +38,13 @@ namespace Jeomseon.Tests.Reactive
             list.Add(10);
             list.Add(20);
 
+            // NUnit 3.5(Unity 6000.5.7f1 번들)는 배열을 담은 ValueTuple을 구조적으로 비교하지
+            // 않고 참조 동일성만 봐서 항상 실패합니다. 필드를 개별로 비교합니다.
             Assert.That(received.Count, Is.EqualTo(2));
-            Assert.That(received[0], Is.EqualTo((new[] { 0 }, new[] { 10 })));
-            Assert.That(received[1], Is.EqualTo((new[] { 1 }, new[] { 20 })));
+            Assert.That(received[0].indices, Is.EqualTo(new[] { 0 }));
+            Assert.That(received[0].items, Is.EqualTo(new[] { 10 }));
+            Assert.That(received[1].indices, Is.EqualTo(new[] { 1 }));
+            Assert.That(received[1].items, Is.EqualTo(new[] { 20 }));
         }
 
         [Test]
@@ -69,7 +73,8 @@ namespace Jeomseon.Tests.Reactive
             list.Insert(1, "b");
 
             Assert.That(list.ToArray(), Is.EqualTo(new[] { "a", "b", "c" }));
-            Assert.That(received[0], Is.EqualTo((new[] { 1 }, new[] { "b" })));
+            Assert.That(received[0].indices, Is.EqualTo(new[] { 1 }));
+            Assert.That(received[0].items, Is.EqualTo(new[] { "b" }));
         }
 
         [Test]
@@ -83,7 +88,8 @@ namespace Jeomseon.Tests.Reactive
 
             Assert.That(removed, Is.True);
             Assert.That(received.Count, Is.EqualTo(1));
-            Assert.That(received[0], Is.EqualTo((new[] { 1 }, new[] { 2 })));
+            Assert.That(received[0].indices, Is.EqualTo(new[] { 1 }));
+            Assert.That(received[0].items, Is.EqualTo(new[] { 2 }));
             Assert.That(list.ToArray(), Is.EqualTo(new[] { 1, 3 }));
         }
 
@@ -109,7 +115,8 @@ namespace Jeomseon.Tests.Reactive
 
             list.RemoveAt(0);
 
-            Assert.That(received[0], Is.EqualTo((new[] { 0 }, new[] { 1 })));
+            Assert.That(received[0].indices, Is.EqualTo(new[] { 0 }));
+            Assert.That(received[0].items, Is.EqualTo(new[] { 1 }));
             Assert.That(list.ToArray(), Is.EqualTo(new[] { 2, 3 }));
         }
 
@@ -123,7 +130,8 @@ namespace Jeomseon.Tests.Reactive
             list.RemoveRange(1, 2);
 
             Assert.That(received.Count, Is.EqualTo(1));
-            Assert.That(received[0], Is.EqualTo((new[] { 1, 2 }, new[] { 2, 3 })));
+            Assert.That(received[0].indices, Is.EqualTo(new[] { 1, 2 }));
+            Assert.That(received[0].items, Is.EqualTo(new[] { 2, 3 }));
             Assert.That(list.ToArray(), Is.EqualTo(new[] { 1, 4, 5 }));
         }
 
@@ -321,14 +329,45 @@ namespace Jeomseon.Tests.Reactive
         {
             ReactiveList<int> list = new();
             bool secondListenerCalled = false;
-            list.AddedEvent += (_, _) => throw new InvalidOperationException("intentional test exception");
-            list.AddedEvent += (_, _) => secondListenerCalled = true;
+            // AddedEvent += 는 구독 시점에 현재 항목을 replay하므로(빈 리스트라도 빈 배열로 1회
+            // 호출됨), 예외를 던지는 리스너를 여기 등록하면 Add(1) 호출 전에 구독 자체에서 예외가
+            // 터집니다. AddListenerToAddedEventWithoutNotify로 replay 없이 등록해 검증 대상(Add
+            // 중 예외 격리)에만 집중합니다.
+            list.AddListenerToAddedEventWithoutNotify((_, _) => throw new InvalidOperationException("intentional test exception"));
+            list.AddListenerToAddedEventWithoutNotify((_, _) => secondListenerCalled = true);
 
             LogAssert.Expect(LogType.Exception, new Regex(".*"));
 
             Assert.DoesNotThrow(() => list.Add(1));
             Assert.That(list.Count, Is.EqualTo(1));
             Assert.That(secondListenerCalled, Is.True);
+        }
+
+        [Test]
+        public void AddListenerToAddedEventWithoutNotify_SameDelegateSubscribedTwice_RemovingOnceStopsExactlyOneRegistration()
+        {
+            // 예외 격리를 위해 리스너를 wrapper로 감싸 등록할 때, 동일 델리게이트(같은 Target+Method)를
+            // 두 번 구독한 뒤 한 번만 해지하면 여전히 한 번은 호출돼야 합니다(표준 멀티캐스트 이벤트
+            // 관례). 매핑을 키당 값 하나만 저장하면 두 번째 구독이 첫 번째 wrapper 참조를 덮어써
+            // 이후 제거가 불가능해지는 누수가 됩니다.
+            ReactiveList<int> list = new();
+            int callCount = 0;
+            AddOrRemoveHandler<int> handler = (_, _) => callCount++;
+            list.AddListenerToAddedEventWithoutNotify(handler);
+            list.AddListenerToAddedEventWithoutNotify(handler);
+
+            list.Add(1);
+            Assert.That(callCount, Is.EqualTo(2));
+
+            list.AddedEvent -= handler;
+            callCount = 0;
+            list.Add(2);
+            Assert.That(callCount, Is.EqualTo(1));
+
+            list.AddedEvent -= handler;
+            callCount = 0;
+            list.Add(3);
+            Assert.That(callCount, Is.EqualTo(0));
         }
     }
 }
