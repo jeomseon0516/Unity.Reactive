@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Jeomseon.Attribute;
 using UnityEngine;
 
 namespace Jeomseon.UnityReactive
@@ -22,7 +23,8 @@ namespace Jeomseon.UnityReactive
         /// 필터링하는 프로세서 인터페이스입니다 사용자 정의 프로세서를 추가시킬시 값을
         /// 프로세서에 한번 필터 시킨후 값을 초기화 시킵니다.
         /// </summary>
-        [field: SerializeReference] public List<IValueProcessor> ValueProcessors { get; set; } = new();
+        [field: SerializeReference, SerializeReferenceSelector]
+        public List<IValueProcessor> ValueProcessors { get; set; } = new();
 
         public override T Value
         {
@@ -51,7 +53,15 @@ namespace Jeomseon.UnityReactive
         protected T GetProcessedValue(T value)
         {
             T processedValue = value;
-            ValueProcessors?.ForEach(processor => processedValue = processor.Process(processedValue));
+            if (ValueProcessors is null) return processedValue;
+
+            foreach (IValueProcessor processor in ValueProcessors)
+            {
+                if (processor is not null)
+                {
+                    processedValue = processor.Process(processedValue);
+                }
+            }
 
             return processedValue;
         }

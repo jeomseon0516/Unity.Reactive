@@ -6,6 +6,7 @@
   "unity": "6000.5",
   "unityRelease": "7f1",
   "dependencies": {
+    "com.jeomseon.unity.attributes": "0.3.2",
     "com.jeomseon.unity.core": "0.1.0",
     "org.nuget.observablecollections": "3.3.4"
   },

@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+- `ReactiveField<T>.ValueProcessors`에 Attributes 패키지의 `[SerializeReferenceSelector]`를 적용해
+  Inspector에서 `IValueProcessor` 구체 타입을 선택할 수 있게 했습니다. 외부
+  `SerializeReferenceDropdown` 조건부 의존성 없이 단일한 패키지 계약으로 제공됩니다.
+- `ReactiveSample` Scene에 직렬화된 `ClampIntProcessor`를 추가하고 타입 선택·Scene 재오픈 유지
+  검증 절차를 Sample README에 기록했습니다.
+
+- **Sample 정책 위반 수정**: `Basic Usage` Sample에 `.unity` Scene 자산이 없어 README가 "GameObject를
+  만들어 컴포넌트를 붙이라"고만 안내하던 것을 발견해 수정했습니다(AGENTS.md "샘플" 절 위반).
+  컴포넌트가 이미 부착된 `ReactiveSample.unity`를 추가하고, Scene이 참조하는 두 Sample 스크립트의
+  GUID를 고정했습니다.
+- `ReactiveFieldSample`을 신규 추가했습니다. `ReactiveList<T>`만 다루던 Sample에 `ReactiveField<T>`
+  예제가 없었습니다. `ValueProcessors`(`ClampIntProcessor`) 파이프라인, 같은 값 대입 시
+  `ChangedEvent` 미발행, `SetValueAndForceInvoke`의 강제 발행을 한 화면에서 확인합니다.
+
 ## [0.2.0] - 2026-08-12
 
 - **(Breaking)** `UnityReactiveList<T>`를 `ReactiveList<T>`로 이름을 줄였습니다. 순수 C#
