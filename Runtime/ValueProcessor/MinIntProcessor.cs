@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Jeomseon.UnityReactive
+namespace Jeomseon.Unity.Reactive.ValueProcessor
 {
     [System.Serializable]
     public class MinIntProcessor : IValueProcessor
