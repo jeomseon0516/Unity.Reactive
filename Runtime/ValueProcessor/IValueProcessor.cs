@@ -1,4 +1,4 @@
-namespace Jeomseon.UnityReactive
+namespace Jeomseon.Unity.Reactive.ValueProcessor
 {
     public interface IValueProcessor
     {

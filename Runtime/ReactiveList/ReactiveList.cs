@@ -9,7 +9,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.Serialization;
 
-namespace Jeomseon.UnityReactive
+namespace Jeomseon.Unity.Reactive.ReactiveList
 {
     // Inspector 편집 대상은 항상 list(순수 List<T>, Unity 기본 직렬화)입니다. 실제 변경 알림·Move
     // 지원은 ObservableCollections(Cysharp)의 ObservableList<T>가 담당하고, list는 Inspector

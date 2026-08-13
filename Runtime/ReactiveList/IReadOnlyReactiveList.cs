@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Jeomseon.UnityReactive
+namespace Jeomseon.Unity.Reactive.ReactiveList
 {
     /// <summary>
     /// .. 내부 값을 추가/제거/변경이 불가능하고 리스너 추가만 가능한 읽기전용 인터페이스입니다

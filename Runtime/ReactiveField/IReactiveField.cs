@@ -1,4 +1,4 @@
-namespace Jeomseon.UnityReactive
+namespace Jeomseon.Unity.Reactive.ReactiveField
 {
     public interface IReactiveField<T> : IReadOnlyReactiveField<T>
     {

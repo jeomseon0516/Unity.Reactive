@@ -2,10 +2,10 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
-using Jeomseon.Events;
+using Jeomseon.Unity.Core.Events;
 using UnityEngine.Serialization;
 
-namespace Jeomseon.UnityReactive
+namespace Jeomseon.Unity.Reactive.ReactiveField
 {
     [System.Serializable]
     public abstract class ReactiveFieldBase<T> : IReactiveField<T>

@@ -1,7 +1,20 @@
 # 변경 기록
 
-## [Unreleased]
+## [0.3.0] - 2026-08-13
 
+- `Jeomseon.Unity.Core`/`Jeomseon.Unity.Attributes`의 워크스페이스 네임스페이스 규칙 적용에 맞춰
+  `using` 참조를 갱신했습니다(`Jeomseon.Events`→`Jeomseon.Unity.Core.Events`,
+  `Jeomseon.Attribute`→`Jeomseon.Unity.Attributes`). 이 패키지 자체 공개 API 변경은 없습니다.
+
+- **(Breaking)** 네임스페이스를 `Jeomseon.UnityReactive` 하나에서 폴더 구조를 따르는
+  `Jeomseon.Unity.Reactive.ReactiveField`/`Jeomseon.Unity.Reactive.ReactiveList`/
+  `Jeomseon.Unity.Reactive.ValueProcessor`로 분리했습니다. 기존 네임스페이스가 asmdef의
+  `rootNamespace`(`Jeomseon`)와 폴더 경로(`Runtime/UnityReactive/<하위 폴더>`)를 따르지 않아 Rider
+  기본 네임스페이스 규칙과 어긋나 있었습니다. `Runtime/UnityReactive/` 중간 폴더도 패키지 이름과
+  중복돼 제거하고 `Runtime/ReactiveField`·`Runtime/ReactiveList`·`Runtime/ValueProcessor`로
+  옮겼습니다(GUID는 보존). Runtime asmdef의 `rootNamespace`도 `Jeomseon` → `Jeomseon.Unity.Reactive`로
+  변경했습니다. 소비 코드는 `using Jeomseon.Unity.Reactive.ReactiveField;` 등 새 네임스페이스로
+  갱신해야 합니다.
 - `ReactiveField<T>.ValueProcessors`에 Attributes 패키지의 `[SerializeReferenceSelector]`를 적용해
   Inspector에서 `IValueProcessor` 구체 타입을 선택할 수 있게 했습니다. 외부
   `SerializeReferenceDropdown` 조건부 의존성 없이 단일한 패키지 계약으로 제공됩니다.

@@ -1,6 +1,6 @@
 {
   "name": "Jeomseon.Unity.Reactive",
-  "rootNamespace": "Jeomseon",
+  "rootNamespace": "Jeomseon.Unity.Reactive",
   "references": [
     "Jeomseon.Unity.Attributes",
     "Jeomseon.Unity.Core",
