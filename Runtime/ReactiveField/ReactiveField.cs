@@ -1,8 +1,10 @@
 using System.Collections.Generic;
-using Jeomseon.Attribute;
+using System.Linq;
+using Jeomseon.Unity.Attributes;
+using Jeomseon.Unity.Reactive.ValueProcessor;
 using UnityEngine;
 
-namespace Jeomseon.UnityReactive
+namespace Jeomseon.Unity.Reactive.ReactiveField
 {
     [System.Serializable]
     public class ReactiveField<T> : ReactiveFieldBase<T>
@@ -50,20 +52,10 @@ namespace Jeomseon.UnityReactive
             changedEvent.Invoke(this.value);
         }
 
-        protected T GetProcessedValue(T value)
-        {
-            T processedValue = value;
-            if (ValueProcessors is null) return processedValue;
-
-            foreach (IValueProcessor processor in ValueProcessors)
-            {
-                if (processor is not null)
-                {
-                    processedValue = processor.Process(processedValue);
-                }
-            }
-
-            return processedValue;
-        }
+        protected T GetProcessedValue(T value) => ValueProcessors is null
+            ? value :
+            ValueProcessors
+                .Where(processor => processor is not null)
+                .Aggregate(value, (current, processor) => processor.Process(current));
     }
 }

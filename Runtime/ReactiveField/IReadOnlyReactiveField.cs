@@ -1,6 +1,6 @@
 using System;
 
-namespace Jeomseon.UnityReactive
+namespace Jeomseon.Unity.Reactive.ReactiveField
 {
     /// <summary>
     /// .. 읽기 전용 인터페이스 입니다 가장 기본적인 메서드만 제공합니다
