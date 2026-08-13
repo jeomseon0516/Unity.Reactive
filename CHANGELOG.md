@@ -1,5 +1,16 @@
 # 변경 기록
 
+## [Unreleased]
+
+- TODO(ROADMAP P1-04): `IValueProcessor.Process<T>(T value)`가 메서드 제네릭이라 `ReactiveField<T>`의
+  T와 무관한 processor를 Inspector에서 붙일 수 있고, 타입이 안 맞으면 조용히 no-op됩니다(기존에
+  의도적으로 봉합·테스트됨). `IValueProcessor<T>`로 인터페이스 자체를 제네릭화해 근본 차단하는 방향을
+  검토합니다 — 착수 전 `SerializeReferenceSelector`의 닫힌 제네릭 필터링 지원 여부 확인 필요.
+- TODO(ROADMAP P1-05): `ReactiveField<T>.value`가 `[SerializeField]`(Unity 클래식 직렬화)라 T가
+  인터페이스/추상 클래스면 조용히 직렬화되지 않습니다. `Wrapper<T> where T : class` +
+  `[SerializeReference, SerializeReferenceSelector]`를 내부적으로만 쓰는 별도
+  `ReactiveReferenceField<T>` 도입을 검토했으나, 실사용 빈도가 낮을 것으로 판단해 보류합니다.
+
 ## [0.3.0] - 2026-08-13
 
 - `Jeomseon.Unity.Core`/`Jeomseon.Unity.Attributes`의 워크스페이스 네임스페이스 규칙 적용에 맞춰
