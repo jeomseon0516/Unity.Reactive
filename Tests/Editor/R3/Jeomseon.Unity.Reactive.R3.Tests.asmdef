@@ -1,0 +1,30 @@
+{
+  "name": "Jeomseon.Unity.Reactive.R3.Tests",
+  "rootNamespace": "Jeomseon.Tests.Reactive.R3",
+  "references": [
+    "Jeomseon.Unity.Reactive",
+    "Jeomseon.Unity.Reactive.R3"
+  ],
+  "overrideReferences": true,
+  "precompiledReferences": [
+    "R3.dll"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "versionDefines": [
+    {
+      "name": "org.nuget.observablecollections.r3",
+      "expression": "[3.3.4,4.0.0)",
+      "define": "JEOMSEON_OBSERVABLE_COLLECTIONS_R3"
+    }
+  ],
+  "defineConstraints": [
+    "JEOMSEON_OBSERVABLE_COLLECTIONS_R3"
+  ],
+  "autoReferenced": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ],
+  "noEngineReferences": false
+}
