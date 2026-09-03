@@ -129,11 +129,10 @@
 - R3(Cysharp)는 필수 의존성으로 두지 않았습니다 — 이 패키지는 R3 유무와 무관하게 독립적으로
   동작해야 한다는 기준에 따라, R3가 프로젝트에 별도로 추가된 경우에만 호환되는 선택적 확장을
   이후 추가할 계획입니다(ROADMAP P1-01 참고).
-- 향후 계획: 직렬화 가능한 `ReactiveDictionary`를 검토 중입니다. `ObservableCollections`에
-  `ObservableDictionary<TKey,TValue>`가 있지만 Unity는 `Dictionary<K,V>`를 Inspector에서 직렬화하지
-  못해(List<T>와 달리) 커스텀 직렬화 스킴이 필요해 지금은 보류합니다. Unity 6000.6에서 Dictionary
-  직렬화가 공식 지원될 예정이라, 6000.6 LTS 출시 후 이 패키지가 아직 1.x 이전이면 최소 지원 버전을
-  6000.6으로 올리고 그 기능을 활용하는 방향을 우선 검토합니다.
+- 향후 계획: 직렬화 가능한 `ReactiveDictionary`를 검토 중입니다. Unity 6000.6 정식 릴리스가
+  `[SerializeField] Dictionary<TKey,TValue>`를 직접 지원하므로 커스텀 `SerializedDictionary`나
+  key/value 배열 직렬화 구현은 추가하지 않습니다. 기능 착수 시 이 패키지 버전만 최소 Unity 버전을
+  6000.6으로 올리고, 공식 Dictionary 저장소와 `ObservableDictionary<TKey,TValue>` 알림을 결합합니다.
 - 이월: 정적 이벤트·전역 인스턴스의 Domain Reload 비활성화 호환성 검토는 아직 진행하지 않았습니다.
 
 ## [0.1.4] - 2026-08-11

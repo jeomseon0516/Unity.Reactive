@@ -94,15 +94,32 @@
 7. **P2-01 — 알림 할당 최적화**
    - 변경마다 생성되는 index/item 배열을 읽기 전용 이벤트 구조로 대체할지 측정합니다.
    - `ObservableList<T>` 자체의 `Span<T>` 기반 API를 얼마나 활용할 수 있는지도 함께 검토합니다.
-8. **P3-01 — 선택적 R3 호환 확장**
-   - `#if` 조건부 컴파일(`ReactiveField`가 쓰던 `SERIALIZEREFERENCEDROPDOWN_INSTALLED` 패턴과 동일)로
-     R3가 있을 때만 컴파일되는 `IReadOnlyReactiveList<T>`/`IReadOnlyReactiveField<T>` →
-     `Observable<T>` 변환 확장 메서드를 추가합니다. `ObservableCollections.R3`도 UnityNuGet에
+8. **P3-01 — 선택적 R3 호환 확장 (구현·사용자 Unity 검증 완료, 게시 전)**
+   - `Runtime/R3/Jeomseon.Unity.Reactive.R3.asmdef`가
+     `org.nuget.observablecollections.r3` 3.3.4 이상 4.0.0 미만이 설치된 경우에만 별도 어셈블리를
+     컴파일합니다. UnityNuGet 배포본의 실제 플러그인 어셈블리 이름은
+     `ObservableCollections.R3`와 `R3`이며 자동 참조됨을 확인했습니다.
+   - 이 어셈블리에 `IReadOnlyReactiveField<T>`의 값 스트림과 `IReadOnlyReactiveList<T>`의
+     추가·제거·교체·재배치 스트림 변환 확장 메서드를 추가했습니다. `ObservableCollections.R3`도 UnityNuGet에
      `org.nuget.observablecollections.r3`로 등록돼 있어(확인 완료) 필요 시 같은 경로로 설치
      가능합니다. R3 자체는 여전히 필수 의존성이 아닙니다.
-9. **P3-02 — 직렬화 가능한 ReactiveDictionary (보류)**
-   - `ObservableCollections`에 `ObservableDictionary<TKey,TValue>`가 있지만 Unity는
-     `Dictionary<K,V>`를 Inspector에서 직렬화하지 못해 커스텀 key/value 배열 직렬화 스킴이
-     필요합니다. Unity 6000.6에서 Dictionary 직렬화가 공식 지원될 예정이라(2026-08-11 확인,
-     6000.6은 아직 베타), 6000.6 LTS가 나오면 이 패키지가 아직 1.x 이전일 경우 최소 지원 버전을
-     6000.6으로 올리고 공식 기능을 활용하는 방향을 우선 검토합니다.
+   - `Tests/Editor/R3/ReactiveR3ExtensionsTests.cs`에 현재 값 재생, 변경 중계, Add 초기 항목 재생,
+     Remove/Replace/Reorder payload, 재배치 스냅샷 안정성, Dispose 이후 구독 해제와 null 입력 계약을
+     검증하는 조건부 EditMode 테스트를 추가했습니다. 테스트 asmdef는 `R3.dll`을 명시적으로 참조하고
+     `ReactiveList<T>` 검증에 필요한 Unity Engine 참조를 허용합니다. 사용자가 Unity 6000.5.7f1
+     Test Runner에서 관련 테스트가 모두 통과했음을 확인했습니다.
+9. **P3-02 — Unity 6.6 기반 ReactiveDictionary (설계 대기, 2026-09-02 갱신)**
+   - Unity 6000.6이 2026-09-01 Supported 릴리스로 정식 출시되어
+     `[SerializeField] Dictionary<TKey,TValue>`와 Inspector key/value 편집을 공식 지원합니다.
+     커스텀 `SerializedDictionary`, Dictionary 상속 Wrapper, 병렬 key/value 배열 및
+     `ISerializationCallbackReceiver` 기반 직렬화 구현 계획은 폐기합니다.
+   - `ReactiveDictionary<TKey,TValue>`의 요구사항 자체는 유지합니다. 이 타입은 공식 직렬화 대상인
+     정확한 `Dictionary<TKey,TValue>` 필드를 저장소로 두고, 런타임 알림은
+     `ObservableDictionary<TKey,TValue>`에 위임하는 구조를 우선 검토합니다. Add/Remove/Replace/Clear,
+     Inspector 편집 후 런타임 동기화, 중복 key 진단과 이벤트 시점 payload 계약을 테스트해야 합니다.
+   - Unity 공식 제한도 API 계약에 반영합니다. Dictionary 필드에는 `[SerializeField]`가 필수이고
+     선언형이 정확히 `Dictionary<TKey,TValue>`여야 하며, `[SerializeReference]`는 사용할 수 없습니다.
+     지원되는 key/value 타입과 중첩 컬렉션 제한은 Unity serialization analyzer 결과를 따릅니다.
+   - 이 기능을 구현하는 패키지 버전만 최소 Unity 버전을 6000.6으로 올립니다. 기존 6000.5 자산을
+     커스텀 Dictionary 형식에서 옮기는 자동 마이그레이션은 현재 존재하지 않으므로, 실제 구형 공개
+     필드가 생긴 경우에만 새 필드를 병행해 데이터 이전을 검증하는 별도 Migration을 작성합니다.

@@ -1,0 +1,23 @@
+{
+  "name": "Jeomseon.Unity.Reactive.R3",
+  "rootNamespace": "Jeomseon.Unity.Reactive.R3",
+  "references": [
+    "Jeomseon.Unity.Reactive"
+  ],
+  "overrideReferences": true,
+  "precompiledReferences": [
+    "R3.dll"
+  ],
+  "versionDefines": [
+    {
+      "name": "org.nuget.observablecollections.r3",
+      "expression": "[3.3.4,4.0.0)",
+      "define": "JEOMSEON_OBSERVABLE_COLLECTIONS_R3"
+    }
+  ],
+  "defineConstraints": [
+    "JEOMSEON_OBSERVABLE_COLLECTIONS_R3"
+  ],
+  "autoReferenced": true,
+  "noEngineReferences": true
+}

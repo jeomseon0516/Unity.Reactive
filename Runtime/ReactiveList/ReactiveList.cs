@@ -213,7 +213,7 @@ namespace Jeomseon.Unity.Reactive.ReactiveList
                 _runtime.CollectionChanged += OnRuntimeCollectionChanged;
             }
 
-            reorderedEvent.Invoke(_runtime);
+            reorderedEvent.Invoke(_runtime.ToArray());
         }
 
         // -------------------- 기타 List<T> Wrappers --------------------
@@ -289,7 +289,7 @@ namespace Jeomseon.Unity.Reactive.ReactiveList
                     }
                     break;
                 case NotifyCollectionChangedAction.Move:
-                    reorderedEvent.Invoke(_runtime);
+                    reorderedEvent.Invoke(_runtime.ToArray());
                     break;
                 case NotifyCollectionChangedAction.Reset:
                     // Clear/Sort/Reverse는 각 메서드가 CollectionChanged를 일시 해제하고 직접
@@ -390,7 +390,7 @@ namespace Jeomseon.Unity.Reactive.ReactiveList
                 catch (Exception e) { Debug.LogException(e); }
             };
 
-            if (!listeners.TryGetValue(callback, out Stack<UnityAction<IReadOnlyList<T>>> stack))
+            if (!listeners.TryGetValue(callback, out var stack))
             {
                 stack = new Stack<UnityAction<IReadOnlyList<T>>>();
                 listeners[callback] = stack;
@@ -403,7 +403,7 @@ namespace Jeomseon.Unity.Reactive.ReactiveList
         private static void RemoveListenerSafe(UnityEvent<IReadOnlyList<T>> unityEvent, Dictionary<Action<IReadOnlyList<T>>, Stack<UnityAction<IReadOnlyList<T>>>> listeners, Action<IReadOnlyList<T>> callback)
         {
             if (callback == null) return;
-            if (listeners.TryGetValue(callback, out Stack<UnityAction<IReadOnlyList<T>>> stack) && stack.Count > 0)
+            if (listeners.TryGetValue(callback, out var stack) && stack.Count > 0)
             {
                 unityEvent.RemoveListener(stack.Pop());
                 if (stack.Count == 0) listeners.Remove(callback);
