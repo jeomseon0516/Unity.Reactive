@@ -3,8 +3,8 @@
   "version": "0.3.0",
   "displayName": "Jeomseon Unity Reactive",
   "description": "Reactive values, lists, events, and Unity-facing reactive fields.",
-  "unity": "6000.5",
-  "unityRelease": "7f1",
+  "unity": "6000.6",
+  "unityRelease": "0f1",
   "dependencies": {
     "com.jeomseon.unity.attributes": "0.3.2",
     "com.jeomseon.unity.core": "0.1.0",
