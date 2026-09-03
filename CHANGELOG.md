@@ -1,5 +1,11 @@
 # 변경 기록
 
+## [0.4.0] - 2026-09-03
+
+- 선택적 `Jeomseon.Unity.Reactive.R3` 어셈블리를 추가했습니다. `org.nuget.observablecollections.r3`(및 전이 `R3.dll`)를 설치한 프로젝트에서만 활성화되며 기본 `package.json`에는 R3 의존성을 넣지 않습니다.
+- `ReactiveFieldR3Extensions.ObserveValue`와 `ReactiveListR3Extensions`(Add/Remove/Changed/Reordered)를 구현했습니다. 모든 구독은 Dispose 시 원본 이벤트를 해제하고 null source는 `ArgumentNullException`으로 거부합니다. Added 스트림은 현재 항목을 즉시 재생하며, Reorder 스냅샷은 이벤트 시점의 얕은 복사를 전달합니다.
+- Unity 최소 버전을 `6000.5.7f1` → `6000.6.0f1`로 상향했습니다.
+
 ## [Unreleased]
 
 - TODO(ROADMAP P1-04): `IValueProcessor.Process<T>(T value)`가 메서드 제네릭이라 `ReactiveField<T>`의
