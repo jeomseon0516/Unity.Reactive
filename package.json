@@ -1,13 +1,13 @@
 {
   "name": "com.jeomseon.unity.reactive",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "displayName": "Jeomseon Unity Reactive",
   "description": "Reactive values, lists, events, and Unity-facing reactive fields.",
   "unity": "6000.6",
   "unityRelease": "0f1",
   "dependencies": {
-    "com.jeomseon.unity.attributes": "0.3.2",
-    "com.jeomseon.unity.core": "0.1.0",
+    "com.jeomseon.unity.attributes": "0.4.2",
+    "com.jeomseon.unity.core": "0.3.2",
     "org.nuget.observablecollections": "3.3.4"
   },
   "author": {
