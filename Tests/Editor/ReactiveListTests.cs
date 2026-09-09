@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Jeomseon.Unity.Reactive.ReactiveList;
@@ -14,6 +15,79 @@ namespace Jeomseon.Tests.Reactive
     // 해제-재구독-수동 발행이 안전한지"를 중점적으로 검증합니다.
     public sealed class ReactiveListTests
     {
+        [Test]
+        public void NonGenericIList_ForwardsReadsAndMutations()
+        {
+            ReactiveList<string> reactiveList = new(new[] { "First" });
+            IList list = reactiveList;
+            List<(int[] indices, string[] items)> added = new();
+            List<(int[] indices, string[] items)> removed = new();
+            List<(int index, string previous, string current)> changed = new();
+            reactiveList.AddedEvent += (indices, items) => added.Add((indices, items));
+            reactiveList.RemovedEvent += (indices, items) => removed.Add((indices, items));
+            reactiveList.ChangedEvent += (index, previous, current) => changed.Add((index, previous, current));
+            added.Clear();
+
+            var addedIndex = list.Add("Second");
+            list[0] = "Updated";
+            list.Insert(1, "Middle");
+            list.Remove("Second");
+
+            Assert.That(addedIndex, Is.EqualTo(1));
+            Assert.That(list, Is.EqualTo(new[] { "Updated", "Middle" }));
+            Assert.That(list.Contains("Middle"), Is.True);
+            Assert.That(list.IndexOf("Middle"), Is.EqualTo(1));
+            Assert.That(added.Count, Is.EqualTo(2));
+            Assert.That(added[0].indices, Is.EqualTo(new[] { 1 }));
+            Assert.That(added[0].items, Is.EqualTo(new[] { "Second" }));
+            Assert.That(added[1].indices, Is.EqualTo(new[] { 1 }));
+            Assert.That(added[1].items, Is.EqualTo(new[] { "Middle" }));
+            Assert.That(removed.Count, Is.EqualTo(1));
+            Assert.That(removed[0].indices, Is.EqualTo(new[] { 2 }));
+            Assert.That(removed[0].items, Is.EqualTo(new[] { "Second" }));
+            Assert.That(changed, Is.EqualTo(new[] { (0, "First", "Updated") }));
+        }
+
+        [Test]
+        public void NonGenericIList_InvalidValueType_ThrowsArgumentException()
+        {
+            IList list = new ReactiveList<int>();
+
+            Assert.Throws<ArgumentException>(() => list.Add("invalid"));
+            Assert.Throws<ArgumentException>(() => list.Add(null));
+            Assert.Throws<ArgumentException>(() => list.Insert(0, "invalid"));
+            Assert.That(list.Contains("invalid"), Is.False);
+            Assert.That(list.Contains(null), Is.False);
+            Assert.That(list.IndexOf("invalid"), Is.EqualTo(-1));
+            Assert.That(list.IndexOf(null), Is.EqualTo(-1));
+            Assert.DoesNotThrow(() => list.Remove("invalid"));
+            Assert.DoesNotThrow(() => list.Remove(null));
+        }
+
+        [Test]
+        public void NonGenericIList_InvalidIndex_ThrowsArgumentOutOfRangeException()
+        {
+            IList list = new ReactiveList<int>(new[] { 1 });
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => list.Insert(-1, 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => list.Insert(2, 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => list[-1] = 0);
+            Assert.Throws<ArgumentOutOfRangeException>(() => list[1] = 0);
+        }
+
+        [Test]
+        public void NonGenericICollection_CopyToCopiesCurrentValues()
+        {
+            ICollection list = new ReactiveList<int>(new[] { 1, 2 });
+            var destination = new int[4];
+
+            list.CopyTo(destination, 1);
+
+            Assert.That(destination, Is.EqualTo(new[] { 0, 1, 2, 0 }));
+            Assert.That(list.IsSynchronized, Is.False);
+            Assert.That(list.SyncRoot, Is.Not.Null);
+        }
+
         [Test]
         public void AddedEvent_SubscribeReplaysCurrentItems()
         {

@@ -16,7 +16,7 @@ namespace Jeomseon.Unity.Reactive.ReactiveList
     // 표시/저장 시점(OnBeforeSerialize)에만 _runtime과 동기화됩니다. 이 분리 덕분에 R3 등 외부
     // 반응형 라이브러리 없이도 독립적으로 동작하며, Inspector에 보이는 필드·UI는 기존과 동일합니다.
     [Serializable]
-    public class ReactiveList<T> : IList<T>, IReadOnlyReactiveList<T>, ISerializationCallbackReceiver
+    public class ReactiveList<T> : IList<T>, IList, IReadOnlyReactiveList<T>, ISerializationCallbackReceiver
     {
         [SerializeField, FormerlySerializedAs("_list")] private List<T> list = new();
 
@@ -26,6 +26,7 @@ namespace Jeomseon.Unity.Reactive.ReactiveList
         [SerializeField, FormerlySerializedAs("_reorderedEvent")] private UnityEvent<IReadOnlyList<T>> reorderedEvent = new();
 
         [NonSerialized] private ObservableList<T> _runtime;
+        [NonSerialized] private readonly object _syncRoot = new();
 
         // UnityEvent는 리스너 하나가 던진 예외를 격리하지 않습니다(UnityEventBase.Invoke는 개별 호출에
         // try/catch가 없어, 하나가 던지면 나머지 리스너 호출이 그대로 중단되고 예외가 호출자까지
@@ -83,6 +84,11 @@ namespace Jeomseon.Unity.Reactive.ReactiveList
         public int Count => _runtime.Count;
         public bool IsReadOnly => false;
 
+        bool IList.IsReadOnly => false;
+        bool IList.IsFixedSize => false;
+        bool ICollection.IsSynchronized => false;
+        object ICollection.SyncRoot => _syncRoot;
+
         public T this[int index]
         {
             get => _runtime[index];
@@ -93,14 +99,34 @@ namespace Jeomseon.Unity.Reactive.ReactiveList
             }
         }
 
+        object IList.this[int index]
+        {
+            get => this[index];
+            set
+            {
+                ValidateExistingIndex(index);
+                this[index] = CastItem(value);
+            }
+        }
+
         public void AddListenerToAddedEventWithoutNotify(AddOrRemoveHandler<T> onAddAction) => AddListenerSafe(addedEvent, _addedListeners, onAddAction);
 
         // -------------------- Add / Insert --------------------
         public void Add(T item) => _runtime.Add(item);
+        int IList.Add(object value)
+        {
+            Add(CastItem(value));
+            return Count - 1;
+        }
         public void Insert(int index, T item)
         {
             if ((uint)index > (uint)_runtime.Count) return;
             _runtime.Insert(index, item);
+        }
+        void IList.Insert(int index, object value)
+        {
+            ValidateInsertIndex(index);
+            Insert(index, CastItem(value));
         }
 
         public void AddRange(IEnumerable<T> collection) => InsertRange(_runtime.Count, collection);
@@ -114,6 +140,10 @@ namespace Jeomseon.Unity.Reactive.ReactiveList
 
         // -------------------- Remove --------------------
         public bool Remove(T item) => _runtime.Remove(item);
+        void IList.Remove(object value)
+        {
+            if (IsCompatibleItem(value)) Remove((T)value);
+        }
 
         public void RemoveAt(int index)
         {
@@ -221,7 +251,13 @@ namespace Jeomseon.Unity.Reactive.ReactiveList
         public T[] ToArray() => _runtime.ToArray();
         public ReadOnlyCollection<T> AsReadOnly() => new(_runtime.ToList());
         public bool Contains(T item) => _runtime.Contains(item);
+        bool IList.Contains(object value) => IsCompatibleItem(value) && Contains((T)value);
         public void CopyTo(T[] array, int arrayIndex) => _runtime.CopyTo(array, arrayIndex);
+        void ICollection.CopyTo(Array array, int index)
+        {
+            T[] snapshot = ToArray();
+            Array.Copy(snapshot, 0, array, index, snapshot.Length);
+        }
         public bool Exist(Predicate<T> match) => _runtime.Any(item => match(item));
         public T Find(Predicate<T> match) => _runtime.FirstOrDefault(item => match(item));
         public List<T> FindAll(Predicate<T> match) => _runtime.Where(item => match(item)).ToList();
@@ -233,12 +269,35 @@ namespace Jeomseon.Unity.Reactive.ReactiveList
         public int IndexOf(T item, int index, int count) => _runtime.ToList().IndexOf(item, index, count);
         public int IndexOf(T item, int index) => _runtime.ToList().IndexOf(item, index);
         public int IndexOf(T item) => _runtime.IndexOf(item);
+        int IList.IndexOf(object value) => IsCompatibleItem(value) ? IndexOf((T)value) : -1;
         public int LastIndexOf(T item) => _runtime.ToList().LastIndexOf(item);
         public int LastIndexOf(T item, int index) => _runtime.ToList().LastIndexOf(item, index);
         public int LastIndexOf(T item, int index, int count) => _runtime.ToList().LastIndexOf(item, index, count);
         public bool TrueForAll(Predicate<T> match) => _runtime.All(item => match(item));
         public IEnumerator<T> GetEnumerator() => _runtime.GetEnumerator();
         IEnumerator IEnumerable.GetEnumerator() => _runtime.GetEnumerator();
+
+        private static bool IsCompatibleItem(object value) => value is T || (value == null && default(T) is null);
+
+        private void ValidateExistingIndex(int index)
+        {
+            if ((uint)index >= (uint)_runtime.Count)
+                throw new ArgumentOutOfRangeException(nameof(index));
+        }
+
+        private void ValidateInsertIndex(int index)
+        {
+            if ((uint)index > (uint)_runtime.Count)
+                throw new ArgumentOutOfRangeException(nameof(index));
+        }
+
+        private static T CastItem(object value)
+        {
+            if (!IsCompatibleItem(value))
+                throw new ArgumentException($"Value must be assignable to {typeof(T)}.", nameof(value));
+
+            return (T)value;
+        }
 
         // 생성자
         public ReactiveList() { InitializeRuntime(list); }

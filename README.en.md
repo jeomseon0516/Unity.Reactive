@@ -18,7 +18,7 @@ Register the OpenUPM scoped registry once in your project's `Packages/manifest.j
     }
   ],
   "dependencies": {
-    "com.jeomseon.unity.reactive": "0.4.1"
+    "com.jeomseon.unity.reactive": "0.4.2"
   }
 }
 ```
@@ -28,5 +28,11 @@ Register the OpenUPM scoped registry once in your project's `Packages/manifest.j
 Enter the following URL in Unity Package Manager's `Install package from git URL`.
 
 ```text
-https://github.com/jeomseon0516/Unity.Reactive.git#v0.4.1
+https://github.com/jeomseon0516/Unity.Reactive.git#v0.4.2
 ```
+
+## ReactiveList collection contract
+
+`ReactiveList<T>` implements both `IList<T>` and non-generic `IList`. It can be passed directly, without
+copying, to APIs such as UI Toolkit's `BaseVerticalCollectionView.itemsSource`. Mutations through that path
+raise the same ReactiveList events.
