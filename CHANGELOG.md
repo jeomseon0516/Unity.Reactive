@@ -1,5 +1,11 @@
 # 변경 기록
 
+## [0.4.2] - Unreleased
+
+- `ReactiveList<T>`가 표준 비제네릭 `IList`/`ICollection`도 구현합니다. UI Toolkit의
+  `BaseVerticalCollectionView.itemsSource`를 포함한 비제네릭 컬렉션 소비자에 복사 없이 직접
+  연결할 수 있습니다.
+
 ## [0.4.1] - 2026-09-03
 
 - com.jeomseon 패키지 간 의존성 핀이 옛 버전을 가리켜, 최소 구성 소비 프로젝트에서 UPM minimum-version-selection이 서로 안 맞는 낡은 세트를 조립하던 버그를 고쳤습니다. sibling 의존성 핀을 현재 최신으로 갱신합니다. (com.jeomseon.unity.attributes 0.3.2 -> 0.4.2; com.jeomseon.unity.core 0.1.0 -> 0.3.2)

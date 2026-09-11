@@ -18,7 +18,7 @@ Reactive values, lists, events, and Unity-facing reactive fields.
     }
   ],
   "dependencies": {
-    "com.jeomseon.unity.reactive": "0.4.1"
+    "com.jeomseon.unity.reactive": "0.4.2"
   }
 }
 ```
@@ -28,8 +28,14 @@ Reactive values, lists, events, and Unity-facing reactive fields.
 Unity Package Manager의 `Install package from git URL`에 다음 주소를 사용합니다.
 
 ```text
-https://github.com/jeomseon0516/Unity.Reactive.git#v0.4.1
+https://github.com/jeomseon0516/Unity.Reactive.git#v0.4.2
 ```
+
+## ReactiveList 컬렉션 계약
+
+`ReactiveList<T>`는 `IList<T>`와 비제네릭 `IList`를 모두 구현합니다. UI Toolkit의
+`BaseVerticalCollectionView.itemsSource`처럼 비제네릭 목록을 요구하는 API에도 복사 없이 직접
+전달할 수 있으며, 해당 경로의 변경도 기존 ReactiveList 이벤트를 동일하게 발생시킵니다.
 
 ## 리팩토링 방침
 
