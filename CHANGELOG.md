@@ -48,8 +48,8 @@
 - `ReactiveSample` Scene에 직렬화된 `ClampIntProcessor`를 추가하고 타입 선택·Scene 재오픈 유지
   검증 절차를 Sample README에 기록했습니다.
 
-- **Sample 정책 위반 수정**: `Basic Usage` Sample에 `.unity` Scene 자산이 없어 README가 "GameObject를
-  만들어 컴포넌트를 붙이라"고만 안내하던 것을 발견해 수정했습니다(AGENTS.md "샘플" 절 위반).
+- **Sample 보강**: `Basic Usage` Sample에 `.unity` Scene 자산이 없어 README가 "GameObject를
+  만들어 컴포넌트를 붙이라"고만 안내하던 문제를 수정했습니다.
   컴포넌트가 이미 부착된 `ReactiveSample.unity`를 추가하고, Scene이 참조하는 두 Sample 스크립트의
   GUID를 고정했습니다.
 - `ReactiveFieldSample`을 신규 추가했습니다. `ReactiveList<T>`만 다루던 Sample에 `ReactiveField<T>`
@@ -113,11 +113,11 @@
   (`AddOrRemoveHandler<T>`/`ElementChangedHandler<T>`/`IReadOnlyReactiveList<T>`),
   `ValueProcessor.cs`(`IValueProcessor`/`MinIntProcessor`/`MaxIntProcessor`/`ClampIntProcessor`)를
   타입 하나당 파일 하나로 분리하고 `Runtime/UnityReactive/{ReactiveField,ReactiveList,
-  ValueProcessor}/` 폴더로 재배치했습니다(AGENTS.md 코드 구조 규칙). namespace는 그대로
+  ValueProcessor}/` 폴더로 재배치했습니다. namespace는 그대로
   `Jeomseon.UnityReactive`라 공개 API 변경은 없습니다.
 - **(Breaking)** Unity 비의존 순수 C# `Jeomseon.Reactive.ReactiveList<T>`/`IReadOnlyReactiveList<T>`를
   제거했습니다. `Cysharp/ObservableCollections`의 `ObservableList<T>`가 WPF/Blazor/Unity를 모두
-  지원하는 성숙한 대체재라 자체 구현을 유지할 근거가 약했습니다(AGENTS.md 판단 순서 1-3번).
+  지원하는 성숙한 대체재라 자체 구현을 유지할 근거가 약했습니다.
   `IReadOnlyReactiveList<T>`·`AddOrRemoveHandler<T>`·`ElementChangedHandler<T>`는
   `Jeomseon.UnityReactive` namespace로 옮겼습니다(더 이상 두 namespace로 나눌 이유가 없음).
 - `ReactiveList<T>` 내부 구현을 `ObservableList<T>`(`org.nuget.observablecollections`) 기반으로
